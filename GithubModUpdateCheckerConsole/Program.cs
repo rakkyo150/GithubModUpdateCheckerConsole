@@ -1,11 +1,8 @@
-﻿using CsvHelper;
-using GithubModUpdateCheckerConsole;
+﻿using GithubModUpdateCheckerConsole;
+using GithubModUpdateCheckerConsole.Interfaces;
 using GithubModUpdateCheckerConsole.Utils;
 using System;
-using System.Globalization;
 using System.IO;
-using System.Threading.Tasks;
-using GithubModUpdateCheckerConsole.Interfaces;
 
 
 string configFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
@@ -26,7 +23,7 @@ if (!File.Exists(configFile))
 configManager.LoadConfigFile(configFile);
 
 Console.WriteLine("Choose mode : [1] Check Update [2] Import csv");
-string? mode=Console.ReadLine();
+string? mode = Console.ReadLine();
 
 if (mode == "2")
 {

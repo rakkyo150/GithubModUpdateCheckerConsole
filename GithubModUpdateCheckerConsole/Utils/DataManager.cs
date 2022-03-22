@@ -3,7 +3,6 @@ using GithubModUpdateCheckerConsole.Structure;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 
 namespace GithubModUpdateCheckerConsole.Utils
 {
@@ -23,7 +22,7 @@ namespace GithubModUpdateCheckerConsole.Utils
                 System.Diagnostics.FileVersionInfo vi = System.Diagnostics.FileVersionInfo.GetVersionInfo(pluginPath);
                 Version installedModVersion = new Version(vi.FileVersion);
 
-                filesInfo.Add(f.Name.Replace(".dll",""), installedModVersion);
+                filesInfo.Add(f.Name.Replace(".dll", ""), installedModVersion);
             }
 
             return filesInfo;
@@ -31,8 +30,8 @@ namespace GithubModUpdateCheckerConsole.Utils
 
         public bool DetectModAssistantModAndRemoveFromManagement(ModAssistantModInformation item, KeyValuePair<string, Version> fileAndVersion, ref List<ModAssistantModInformationCsv> detectedModAssistantModCsvList)
         {
-            bool pass=false;
-            
+            bool pass = false;
+
             if (item.name == fileAndVersion.Key)
             {
                 Version modAssistantModVersion = new Version(item.version);
@@ -60,7 +59,7 @@ namespace GithubModUpdateCheckerConsole.Utils
                     };
                     detectedModAssistantModCsvList.Add(modAssistantCsvInstance);
 
-                    pass=true;
+                    pass = true;
                 }
             }
 
@@ -102,7 +101,7 @@ namespace GithubModUpdateCheckerConsole.Utils
             githubModInformationCsv.Add(githubModInstance);
         }
 
-        public void DetectModAssistantModForUpdate(ModAssistantModInformation item, ref Dictionary<string, Tuple<bool, string>> githubModAndOriginalBoolAndUrl,ref List<GithubModInformationCsv> githubModInformationCsv)
+        public void DetectModAssistantModForUpdate(ModAssistantModInformation item, ref Dictionary<string, Tuple<bool, string>> githubModAndOriginalBoolAndUrl, ref List<GithubModInformationCsv> githubModInformationCsv)
         {
             if (githubModAndOriginalBoolAndUrl.ContainsKey(item.name))
             {
@@ -121,7 +120,7 @@ namespace GithubModUpdateCheckerConsole.Utils
             ref Dictionary<string, Tuple<bool, string>> githubModAndOriginalBoolAndUrl, ref List<GithubModInformationCsv> githubModInformationCsv)
         {
             // ローカルファイル減少分
-            foreach(var a in githubModAndOriginalBoolAndUrl)
+            foreach (var a in githubModAndOriginalBoolAndUrl)
             {
                 if (!localFilesInfoDictionary.ContainsKey(a.Key))
                 {
@@ -130,9 +129,9 @@ namespace GithubModUpdateCheckerConsole.Utils
                 }
             }
             // ローカルファイル増加分
-            foreach(var a in localFilesInfoDictionary)
+            foreach (var a in localFilesInfoDictionary)
             {
-                if(!githubModAndOriginalBoolAndUrl.ContainsKey(a.Key) && !Array.Exists(modAssistantAllMods, element => element.name == a.Key))
+                if (!githubModAndOriginalBoolAndUrl.ContainsKey(a.Key) && !Array.Exists(modAssistantAllMods, element => element.name == a.Key))
                 {
                     InputGithubModInformation(githubManager, new KeyValuePair<string, Version>(a.Key, a.Value), ref githubModInformationCsv);
                     Tuple<bool, string> tempGithubModInformation = new Tuple<bool, string>(githubModInformationCsv.Find(n => n.GithubMod == a.Key).OriginalMod, githubModInformationCsv.Find(n => n.GithubMod == a.Key).GithubUrl);

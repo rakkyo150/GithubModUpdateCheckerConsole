@@ -12,13 +12,12 @@ namespace GithubModUpdateCheckerConsole.Utils
     {
         public async Task<ModAssistantModInformation[]> GetAllModAssistantMods()
         {
-            ModAssistantModInformation[] modAssistantMod=null;
+            ModAssistantModInformation[] modAssistantMod = null;
 
             string gameVersion = GetGameVersion();
 
             string modAssistantModInformationUrl = $"https://beatmods.com/api/v1/mod?status=approved&gameVersion={gameVersion}";
 
-            Console.WriteLine(modAssistantModInformationUrl);
             using HttpClient httpClient = new HttpClient();
             try
             {

@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace GithubModUpdateCheckerConsole
 {
-    internal class MainManager:IMainManager
+    internal class MainManager : IMainManager
     {
         IDataManager dataManager;
         IModAssistantManager modAssistantManager;
@@ -18,7 +18,7 @@ namespace GithubModUpdateCheckerConsole
         IConfigManager configManager;
 
         private string gameVersion = "1.11.0";
-        private bool passInputGithubModInformation=false;
+        private bool passInputGithubModInformation = false;
 
         private string configFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
         private string importCsv = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ImportGithubCsv");
@@ -28,7 +28,7 @@ namespace GithubModUpdateCheckerConsole
 
         Dictionary<string, Version> localFilesInfoDictionary;
 
-        private Dictionary<string, Tuple<bool,string>> githubModAndOriginalBoolAndUrl = new Dictionary<string, Tuple<bool,string>>();
+        private Dictionary<string, Tuple<bool, string>> githubModAndOriginalBoolAndUrl = new Dictionary<string, Tuple<bool, string>>();
 
         private ModAssistantModInformation[] modAssistantAllMods;
 
@@ -41,7 +41,7 @@ namespace GithubModUpdateCheckerConsole
             dataManager = new DataManager();
             modAssistantManager = new ModAssistantManager();
             githubManager = new GithubManager();
-            configManager=new ConfigManager();
+            configManager = new ConfigManager();
         }
 
         // Based on https://dobon.net/vb/dotnet/file/getfiles.html and https://dobon.net/vb/dotnet/file/fileversion.html
@@ -59,16 +59,16 @@ namespace GithubModUpdateCheckerConsole
 
             // 以下、Modの振り分け準備
             Console.WriteLine("Start GetAllModAssistantMods");
-            modAssistantAllMods=await modAssistantManager.GetAllModAssistantMods();
+            modAssistantAllMods = await modAssistantManager.GetAllModAssistantMods();
 
-            localFilesInfoDictionary=dataManager.GetLocalFilesInfo(pluginsPath);
+            localFilesInfoDictionary = dataManager.GetLocalFilesInfo(pluginsPath);
 
             // 以下、Modの振り分け、GithubModの情報入力とcsvへの登録
-            foreach (KeyValuePair<string,Version> fileAndVersion in localFilesInfoDictionary)
+            foreach (KeyValuePair<string, Version> fileAndVersion in localFilesInfoDictionary)
             {
                 foreach (var item in modAssistantAllMods)
                 {
-                    passInputGithubModInformation=dataManager.DetectModAssistantModAndRemoveFromManagement(item, fileAndVersion, ref detectedModAssistantModCsvList);
+                    passInputGithubModInformation = dataManager.DetectModAssistantModAndRemoveFromManagement(item, fileAndVersion, ref detectedModAssistantModCsvList);
                 }
 
                 if (!passInputGithubModInformation)
@@ -81,7 +81,7 @@ namespace GithubModUpdateCheckerConsole
             {
                 Directory.CreateDirectory(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data"));
             }
-            
+
             if (detectedModAssistantModCsvList.Count > 0)
             {
                 using var writer2 = new StreamWriter(modAssistantModCsvPath, false);
@@ -131,12 +131,12 @@ namespace GithubModUpdateCheckerConsole
                 dataManager.ManageLocalPluginsDiff(localFilesInfoDictionary, modAssistantAllMods, githubManager,
                     ref githubModAndOriginalBoolAndUrl, ref githubModInformationCsv);
             }
-            foreach(var fileAndOriginalBoolAndVersion in githubModAndOriginalBoolAndUrl)
+            foreach (var fileAndOriginalBoolAndVersion in githubModAndOriginalBoolAndUrl)
             {
                 string pluginPath = Path.Combine(pluginsPath, fileAndOriginalBoolAndVersion.Key);
 
                 var latestVersion = githubManager.GetGithubModLatestVersion(fileAndOriginalBoolAndVersion.Value.Item2).Result;
-                
+
                 if (latestVersion > localFilesInfoDictionary[fileAndOriginalBoolAndVersion.Key])
                 {
                     await githubManager.GithubModDownloadAsync(githubModAndOriginalBoolAndUrl[fileAndOriginalBoolAndVersion.Key].Item2);
@@ -147,12 +147,12 @@ namespace GithubModUpdateCheckerConsole
             using var csv1 = new CsvWriter(writer1, new CultureInfo("ja-JP", false));
             csv1.WriteRecords(githubModInformationCsv);
 
-           UpdateModAssistantModCsv();
+            UpdateModAssistantModCsv();
         }
 
         public void UpdateModAssistantModCsv()
         {
-            if(modAssistantAllMods != null)
+            if (modAssistantAllMods != null)
             {
                 foreach (var a in modAssistantAllMods)
                 {
@@ -177,7 +177,7 @@ namespace GithubModUpdateCheckerConsole
                                 ModAssistantVersion = a.version,
                             };
                         }
-                        
+
                         updateModAssistantModCsvList.Add(modAssistantCsvInstance);
                     }
                 }
@@ -202,11 +202,11 @@ namespace GithubModUpdateCheckerConsole
                 return;
             }
 
-            using var reader = new StreamReader(importCsv);
+            using var reader = new StreamReader(Path.Combine(importCsv, "GithubModData.csv"));
             using var csv = new CsvReader(reader, new CultureInfo("ja-JP", false));
             IEnumerable<GithubModInformationCsv> githubModInformationEnum = csv.GetRecords<GithubModInformationCsv>();
 
-            foreach(var a in githubModInformationEnum)
+            foreach (var a in githubModInformationEnum)
             {
                 await githubManager.GithubModDownloadAsync(a.GithubUrl);
             }
