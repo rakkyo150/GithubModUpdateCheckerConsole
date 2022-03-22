@@ -11,7 +11,7 @@ namespace GithubModUpdateCheckerConsole
 {
     internal class GithubManager : IGithubManager
     {
-        public async Task GithubModDownloadAsync(string url)
+        public async Task GithubModDownloadAsync(string url,Version currentVersion)
         {
             if (url == "p") return;
 
@@ -22,15 +22,20 @@ namespace GithubModUpdateCheckerConsole
             string tem = url.Replace("https://github.com/", "");
             int nextSlashPosition = tem.IndexOf('/');
 
+            if (nextSlashPosition == -1)
+            {
+                Console.WriteLine("URLにミスがあります");
+                Console.WriteLine($"対象のURL : {url}");
+                return;
+            }
+
             string owner = tem.Substring(0, nextSlashPosition);
             string name = tem.Substring(nextSlashPosition + 1);
-
-            Version CurrentVersion = new Version("1.0.0");
 
             var response = github.Repository.Release.GetLatest(owner, name);
 
             var latestVersion = new Version(response.Result.TagName[..].Replace("v", ""));
-            if (latestVersion > CurrentVersion)
+            if (latestVersion > currentVersion)
             {
                 Console.WriteLine($"{owner}/{name}の最新バージョン:{latestVersion}が見つかりました");
                 Console.WriteLine("ダウンロードしますか？ [y/n]");
@@ -59,6 +64,13 @@ namespace GithubModUpdateCheckerConsole
             string tem = url.Replace("https://github.com/", "");
             int nextSlashPosition = tem.IndexOf('/');
 
+            if(nextSlashPosition == -1)
+            {
+                Console.WriteLine("URLにミスがあります");
+                Console.WriteLine($"対象のURL : {url}");
+                return new Version("0.0.0");
+            }
+            
             string owner = tem.Substring(0, nextSlashPosition);
             string name = tem.Substring(nextSlashPosition + 1);
 
@@ -72,6 +84,8 @@ namespace GithubModUpdateCheckerConsole
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
+                Console.WriteLine("URLにミスがあるかもしれません");
+                Console.WriteLine($"対象のURL : {url}");
                 return new Version("0.0.0");
             }
 
@@ -102,6 +116,8 @@ namespace GithubModUpdateCheckerConsole
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
+                Console.WriteLine("URLにミスがあるかもしれません");
+                Console.WriteLine($"対象のURL : {uri}");
             }
         }
     }

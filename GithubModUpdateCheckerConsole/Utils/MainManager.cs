@@ -147,7 +147,8 @@ namespace GithubModUpdateCheckerConsole
 
                 if (latestVersion > localFilesInfoDictionary[fileAndOriginalBoolAndVersion.Key])
                 {
-                    await githubManager.GithubModDownloadAsync(githubModAndOriginalBoolAndUrl[fileAndOriginalBoolAndVersion.Key].Item2);
+                    await githubManager.GithubModDownloadAsync(githubModAndOriginalBoolAndUrl[fileAndOriginalBoolAndVersion.Key].Item2,
+                        localFilesInfoDictionary[fileAndOriginalBoolAndVersion.Key]);
                 }
             }
 
@@ -204,7 +205,7 @@ namespace GithubModUpdateCheckerConsole
 
             foreach (var a in githubModInformationEnum)
             {
-                await githubManager.GithubModDownloadAsync(a.GithubUrl);
+                await githubManager.GithubModDownloadAsync(a.GithubUrl,new Version(a.LocalVersion));
             }
         }
     }

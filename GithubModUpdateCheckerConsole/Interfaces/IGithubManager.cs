@@ -5,7 +5,7 @@ namespace GithubModUpdateCheckerConsole.Interfaces
 {
     public interface IGithubManager
     {
-        Task GithubModDownloadAsync(string url);
+        Task GithubModDownloadAsync(string url,Version currentVersion);
         Task<Version> GetGithubModLatestVersion(string url);
     }
 }
