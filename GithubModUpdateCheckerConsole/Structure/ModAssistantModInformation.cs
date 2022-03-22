@@ -3,7 +3,7 @@
 namespace GithubModUpdateCheckerConsole.Utils
 {
 
-    internal class ModAssistantModInformation
+    public class ModAssistantModInformation
     {
         public string name;
         public string version;

@@ -17,20 +17,24 @@ namespace GithubModUpdateCheckerConsole
         IGithubManager githubManager;
         IConfigManager configManager;
 
-        internal static ModAssistantModInformation[] modAssistantMod { get; set; }
-        internal static Dictionary<string, string> ModAndUrl { get; set; } = new Dictionary<string, string>();
-
         private string gameVersion = "1.11.0";
+        private bool passInputGithubModInformation=false;
 
         private string configFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
-
+        private string importCsv = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ImportGithubCsv");
         private string pluginsPath = Path.Combine(Settings.Instance.BeatSaberExeFolderPath, "Plugins");
-
         private string githubModCsvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "GithubModData.csv");
         private string modAssistantModCsvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "ModAssistantModData.csv");
 
+        Dictionary<string, Version> localFilesInfoDictionary;
+
+        private Dictionary<string, Tuple<bool,string>> githubModAndOriginalBoolAndUrl = new Dictionary<string, Tuple<bool,string>>();
+
+        private ModAssistantModInformation[] modAssistantAllMods;
+
         private List<GithubModInformationCsv> githubModInformationCsv = new List<GithubModInformationCsv>();
-        private List<ModAssistantModInformationCsv> modAssistantModCsv = new List<ModAssistantModInformationCsv>();
+        private List<ModAssistantModInformationCsv> detectedModAssistantModCsvList = new List<ModAssistantModInformationCsv>();
+        private List<ModAssistantModInformationCsv> updateModAssistantModCsvList = new List<ModAssistantModInformationCsv>();
 
         internal MainManager()
         {
@@ -50,94 +54,39 @@ namespace GithubModUpdateCheckerConsole
             {
                 Console.WriteLine("Make a Config File");
                 configManager.MakeConfigFile(configFile);
+                Directory.CreateDirectory(importCsv);
             }
 
             // 以下、Modの振り分け準備
-            Console.WriteLine("Start GetVersion");
-            gameVersion = dataManager.GetGameVersion();
-
-            string modAssistantModInformationUrl = $"https://beatmods.com/api/v1/mod?status=approved&gameVersion={gameVersion}";
-
             Console.WriteLine("Start GetAllModAssistantMods");
-            await modAssistantManager.GetAllModAssistantMods(modAssistantModInformationUrl);
+            modAssistantAllMods=await modAssistantManager.GetAllModAssistantMods();
 
-            Dictionary<string,Version> localFilesInfoDictionary=dataManager.GetLocalFilesInfo(pluginsPath);
+            localFilesInfoDictionary=dataManager.GetLocalFilesInfo(pluginsPath);
 
             // 以下、Modの振り分け、GithubModの情報入力とcsvへの登録
             foreach (KeyValuePair<string,Version> fileAndVersion in localFilesInfoDictionary)
             {
-                int modAssistantModCount = modAssistantModCsv.Count;
-                foreach (var item in modAssistantMod)
+                foreach (var item in modAssistantAllMods)
                 {
-                    if (item.name == fileAndVersion.Key)
-                    {
-                        Version modAssistantModVersion = new Version(item.version);
-                        if (modAssistantModVersion >= fileAndVersion.Value)
-                        {
-                            Console.WriteLine(item.name + "はModAssistantにあるので無視します");
-
-                            // GUIアプリ作る時、ここの操作のUIは必要そう
-                            Console.WriteLine("オリジナルを使用していない場合、手動で追加してください");
-
-                            Console.WriteLine("ModAssistantModData.csvに追加します");
-
-                            var modAssistantCsvInstance = new ModAssistantModInformationCsv()
-                            {
-                                ModAssistantMod = fileAndVersion.Key,
-                                LocalVersion = fileAndVersion.Value.ToString(),
-                                ModAssistantVersion = item.version,
-                            };
-                            modAssistantModCsv.Add(modAssistantCsvInstance);
-                        }
-
-                        break;
-                    }
-                }
-                if(modAssistantModCount > modAssistantModCsv.Count)
-                {
-                    using var writer2 = new StreamWriter(modAssistantModCsvPath, false);
-                    using var csv2 = new CsvWriter(writer2, new CultureInfo("ja-JP", false));
-                    csv2.WriteRecords(modAssistantModCsv);
-                    break;
+                    passInputGithubModInformation=dataManager.DetectModAssistantModAndRemoveFromManagement(item, fileAndVersion, ref detectedModAssistantModCsvList);
                 }
 
-
-                Console.WriteLine("オリジナルModですか？ [y/n]");
-                var ok = Console.ReadLine();
-                Console.WriteLine(ok);
-                bool originalMod;
-                if (ok == "y")
+                if (!passInputGithubModInformation)
                 {
-                    originalMod = true;
+                    dataManager.InputGithubModInformation(githubManager, fileAndVersion, ref githubModInformationCsv);
                 }
-                else
-                {
-                    originalMod = false;
-                }
-
-                Console.WriteLine("GithubのリポジトリのUrlを入力してください");
-                var githubUrl = Console.ReadLine();
-
-                Console.WriteLine("Githubの最新のリリースのタグ情報を取得します");
-
-                string githubModVersion = githubManager.GetGithubModLatestVersion(githubUrl).Result.ToString();
-
-                Console.WriteLine("GithubModData.csvに追加します");
-
-                var githubModInstance = new GithubModInformationCsv()
-                {
-                    GithubMod = fileAndVersion.Key,
-                    LocalVersion = fileAndVersion.Value.ToString(),
-                    GithubVersion = githubModVersion,
-                    OriginalMod = true,
-                    GithubUrl = githubUrl,
-                };
-                githubModInformationCsv.Add(githubModInstance);
             }
 
             if (!Directory.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data")))
             {
                 Directory.CreateDirectory(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data"));
+            }
+            
+            if (detectedModAssistantModCsvList.Count > 0)
+            {
+                using var writer2 = new StreamWriter(modAssistantModCsvPath, false);
+                using var csv2 = new CsvWriter(writer2, new CultureInfo("ja-JP", false));
+                csv2.WriteRecords(detectedModAssistantModCsvList);
             }
 
             using var writer1 = new StreamWriter(githubModCsvPath, false);
@@ -145,267 +94,122 @@ namespace GithubModUpdateCheckerConsole
             csv1.WriteRecords(githubModInformationCsv);
         }
 
-        public async Task UpdateAsync()
+        public async Task UpdateGithubModAsync()
         {
-            Console.WriteLine("Start GetVersion");
-            gameVersion = dataManager.GetGameVersion();
-            string modAssistantModInformationUrl = $"https://beatmods.com/api/v1/mod?status=approved&gameVersion={gameVersion}";
-
-            Console.WriteLine("Start GetAllModAssistantMods");
-            await modAssistantManager.GetAllModAssistantMods(modAssistantModInformationUrl);
-
-            Dictionary<string, Version> localFilesInfoDictionary = dataManager.GetLocalFilesInfo(pluginsPath);
-
-            if (File.Exists(githubModCsvPath))
+            if (!File.Exists(githubModCsvPath))
             {
-                using var reader = new StreamReader(githubModCsvPath);
-                using var csv = new CsvReader(reader, new CultureInfo("ja-JP", false));
-                var githubModInformationEnum = csv.GetRecords<GithubModInformationCsv>();
-
-                foreach (var githubModInformation in githubModInformationEnum)
-                {
-                    MainManager.ModAndUrl.Add(githubModInformation.GithubMod, githubModInformation.GithubUrl);
-                }
-
-                // 以下、前回のデータとの差分を取得して必要事項を補充
-                foreach (KeyValuePair<string,Version> fileAndVersion in localFilesInfoDictionary)
-                {
-                    if(!MainManager.ModAndUrl.ContainsKey(fileAndVersion.Key))
-                    {
-                        int modAssistantModCount = modAssistantModCsv.Count;
-                        foreach (var item in modAssistantMod)
-                        {
-                            if (item.name == fileAndVersion.Key)
-                            {
-                                Version modAssistantModVersion = new Version(item.version);
-                                if (modAssistantModVersion >= fileAndVersion.Value)
-                                {
-                                    Console.WriteLine(item.name + "はModAssistantにあるので無視します");
-
-                                    // GUIアプリ作る時、ここの操作のUIは必要そう
-                                    Console.WriteLine("オリジナルを使用していない場合、手動で追加してください");
-
-                                    Console.WriteLine("ModAssistantModData.csvに追加します");
-
-                                    var modAssistantCsvInstance = new ModAssistantModInformationCsv()
-                                    {
-                                        ModAssistantMod = fileAndVersion.Key,
-                                        LocalVersion = fileAndVersion.Value.ToString(),
-                                        ModAssistantVersion = item.version,
-                                    };
-                                    modAssistantModCsv.Add(modAssistantCsvInstance);
-                                }
-
-                                break;
-                            }
-                        }
-                        if (modAssistantModCount > modAssistantModCsv.Count)
-                        {
-                            using var writer2 = new StreamWriter(modAssistantModCsvPath, false);
-                            using var csv2 = new CsvWriter(writer2, new CultureInfo("ja-JP", false));
-                            csv2.WriteRecords(modAssistantModCsv);
-                            break;
-                        }
-
-
-                        Console.WriteLine("オリジナルModですか？ [y/n]");
-                        var ok = Console.ReadLine();
-                        Console.WriteLine(ok);
-                        bool originalMod;
-                        if (ok == "y")
-                        {
-                            originalMod = true;
-                        }
-                        else
-                        {
-                            originalMod = false;
-                        }
-
-                        Console.WriteLine("GithubのリポジトリのUrlを入力してください");
-                        var githubUrl = Console.ReadLine();
-
-                        Console.WriteLine("Githubの最新のリリースのタグ情報を取得します");
-
-                        string githubModVersion = githubManager.GetGithubModLatestVersion(githubUrl).Result.ToString();
-
-                        Console.WriteLine("GithubModData.csvに追加します");
-
-                        var githubModInstance = new GithubModInformationCsv()
-                        {
-                            GithubMod = fileAndVersion.Key,
-                            LocalVersion = fileAndVersion.Value.ToString(),
-                            GithubVersion = githubModVersion,
-                            OriginalMod = true,
-                            GithubUrl = githubUrl,
-                        };
-                        githubModInformationCsv.Add(githubModInstance);
-
-                        MainManager.ModAndUrl.Add(githubModInstance.GithubMod, githubModInstance.GithubUrl);
-
-                        foreach(var mod in githubModInformationEnum)
-                        {
-                            githubModInformationCsv.Add(githubModInstance);
-                        }
-
-                        using var writer1 = new StreamWriter(githubModCsvPath, false);
-                        using var csv1 = new CsvWriter(writer1, new CultureInfo("ja-JP", false));
-                        csv1.WriteRecords(githubModInformationCsv);
-                    }
-                }
+                Console.WriteLine($"{githubModCsvPath}がありません");
+                Console.WriteLine("イニシャライズします");
+                await Initialize();
             }
             else
             {
-                Dictionary<string, Version> localFilesInfoDictionary2 = dataManager.GetLocalFilesInfo(pluginsPath);
-                // 以下、Modの振り分け、GithubModの情報入力とcsvへの登録
-                foreach (KeyValuePair<string,Version> fileAndVersion in localFilesInfoDictionary2)
+                Console.WriteLine("Start GetAllModAssistantMods");
+                modAssistantAllMods = await modAssistantManager.GetAllModAssistantMods();
+
+                using var reader = new StreamReader(githubModCsvPath);
+                using var csv = new CsvReader(reader, new CultureInfo("ja-JP", false));
+                IEnumerable<GithubModInformationCsv> githubModInformationEnum = csv.GetRecords<GithubModInformationCsv>();
+
+                foreach (var githubModInformation in githubModInformationEnum)
                 {
-                    int modAssistantModCount = modAssistantModCsv.Count;
-                    foreach (var item in modAssistantMod)
-                    {
-                        if (item.name == fileAndVersion.Key)
-                        {
-                            Version modAssistantModVersion = new Version(item.version);
-                            if (modAssistantModVersion >= fileAndVersion.Value)
-                            {
-                                Console.WriteLine(item.name + "はModAssistantにあるので無視します");
-
-                                // GUIアプリ作る時、ここの操作のUIは必要そう
-                                Console.WriteLine("オリジナルを使用していない場合、手動で追加してください");
-
-                                Console.WriteLine("ModAssistantModData.csvに追加します");
-
-                                var modAssistantCsvInstance = new ModAssistantModInformationCsv()
-                                {
-                                    ModAssistantMod = fileAndVersion.Key,
-                                    LocalVersion = fileAndVersion.Value.ToString(),
-                                    ModAssistantVersion = item.version,
-                                };
-                                modAssistantModCsv.Add(modAssistantCsvInstance);
-                            }
-
-                            break;
-                        }
-                    }
-                    if (modAssistantModCount > modAssistantModCsv.Count)
-                    {
-                        using var writer2 = new StreamWriter(modAssistantModCsvPath, false);
-                        using var csv2 = new CsvWriter(writer2, new CultureInfo("ja-JP", false));
-                        csv2.WriteRecords(modAssistantModCsv);
-                        break;
-                    }
-
-
-                    Console.WriteLine("オリジナルModですか？ [y/n]");
-                    var ok = Console.ReadLine();
-                    Console.WriteLine(ok);
-                    bool originalMod;
-                    if (ok == "y")
-                    {
-                        originalMod = true;
-                    }
-                    else
-                    {
-                        originalMod = false;
-                    }
-
-                    Console.WriteLine("GithubのリポジトリのUrlを入力してください");
-                    var githubUrl = Console.ReadLine();
-
-                    Console.WriteLine("Githubの最新のリリースのタグ情報を取得します");
-
-                    string githubModVersion = githubManager.GetGithubModLatestVersion(githubUrl).Result.ToString();
-
-                    Console.WriteLine("GithubModData.csvに追加します");
-
-                    var githubModInstance = new GithubModInformationCsv()
-                    {
-                        GithubMod = fileAndVersion.Key,
-                        LocalVersion = fileAndVersion.Value.ToString(),
-                        GithubVersion = githubModVersion,
-                        OriginalMod = true,
-                        GithubUrl = githubUrl,
-                    };
-                    githubModInformationCsv.Add(githubModInstance);
-
-                    MainManager.ModAndUrl.Add(githubModInstance.GithubMod, githubModInstance.GithubUrl);
+                    githubModInformationCsv.Add(githubModInformation);
+                    Tuple<bool, string> originalBoolAndUrl = new Tuple<bool, string>(githubModInformation.OriginalMod, githubModInformation.GithubUrl);
+                    githubModAndOriginalBoolAndUrl.Add(githubModInformation.GithubMod, originalBoolAndUrl);
                 }
 
-                if (!Directory.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data")))
-                {
-                    Directory.CreateDirectory(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data"));
-                }
+                localFilesInfoDictionary = dataManager.GetLocalFilesInfo(pluginsPath);
 
-                using var writer1 = new StreamWriter(githubModCsvPath, false);
-                using var csv1 = new CsvWriter(writer1, new CultureInfo("ja-JP", false));
-                csv1.WriteRecords(githubModInformationCsv);
+                Console.WriteLine("前回実行時との差分を取得");
+
+                // MAの更新を反映
+                foreach (var item in modAssistantAllMods)
+                {
+                    dataManager.DetectModAssistantModForUpdate(item, ref githubModAndOriginalBoolAndUrl, ref githubModInformationCsv);
+                }
+                // ローカルの差分を反映
+                dataManager.ManageLocalPluginsDiff(localFilesInfoDictionary, modAssistantAllMods, githubManager,
+                    ref githubModAndOriginalBoolAndUrl, ref githubModInformationCsv);
             }
-
-            // ModAssistanに登録されているようになっている場合
-            foreach(var a in modAssistantMod)
+            foreach(var fileAndOriginalBoolAndVersion in githubModAndOriginalBoolAndUrl)
             {
-                if (MainManager.ModAndUrl.ContainsKey(a.name))
-                {
-                    if (localFilesInfoDictionary[a.name]<=new Version(a.version))
-                    {
-                        Console.WriteLine($"{a.name}がModAssistantにあります");
-                        Console.WriteLine($"{a.name}をModAssistantで管理しますか? [y/n]");
-                        string? response=Console.ReadLine();
-                        if (response == "y")
-                        {
-                            GithubModInformationCsv removeItem=null;
-                            
-                            using var reader = new StreamReader(githubModCsvPath);
-                            using var csv = new CsvReader(reader, new CultureInfo("ja-JP", false));
-                            var githubModInformationEnum = csv.GetRecords<GithubModInformationCsv>();
-                            foreach (var githubModInformation in githubModInformationEnum)
-                            {
-                                if (githubModInformation.GithubMod == a.name)
-                                {
-                                    removeItem = githubModInformation;
-                                }
-                            }
-                            if(removeItem != null)
-                            {
-                                githubModInformationCsv.Remove(removeItem);
-                                var modAssistantModInstance = new ModAssistantModInformationCsv()
-                                {
-                                    ModAssistantMod=a.name,
-                                    LocalVersion=localFilesInfoDictionary[a.name].ToString(),
-                                    ModAssistantVersion=a.version,
-                                };
-                                modAssistantModCsv.Add(modAssistantModInstance);
-                            }
-                            MainManager.ModAndUrl.Remove(a.name);
-                        }
-                    }
-                }
-            }
+                string pluginPath = Path.Combine(pluginsPath, fileAndOriginalBoolAndVersion.Key);
 
-            foreach(KeyValuePair<string,Version> fileAndVersion in localFilesInfoDictionary)
-            {
-                string pluginPath = Path.Combine(pluginsPath, fileAndVersion.Key);
-
-                System.Diagnostics.FileVersionInfo vi = System.Diagnostics.FileVersionInfo.GetVersionInfo(pluginPath);
-
-                var latestVersion = githubManager.GetGithubModLatestVersion(MainManager.ModAndUrl[fileAndVersion.Key]).Result;
+                var latestVersion = githubManager.GetGithubModLatestVersion(fileAndOriginalBoolAndVersion.Value.Item2).Result;
                 
-                if (latestVersion > new Version(vi.FileVersion))
+                if (latestVersion > localFilesInfoDictionary[fileAndOriginalBoolAndVersion.Key])
                 {
-                    await githubManager.GithubModDownloadAsync(MainManager.ModAndUrl[fileAndVersion.Key]);
+                    await githubManager.GithubModDownloadAsync(githubModAndOriginalBoolAndUrl[fileAndOriginalBoolAndVersion.Key].Item2);
                 }
             }
 
-            using var writer3 = new StreamWriter(githubModCsvPath, false);
-            using var csv3 = new CsvWriter(writer3, new CultureInfo("ja-JP", false));
-            csv3.WriteRecords(githubModInformationCsv);
-            using var writer4 = new StreamWriter(modAssistantModCsvPath, false);
-            using var csv4 = new CsvWriter(writer4, new CultureInfo("ja-JP", false));
-            csv4.WriteRecords(modAssistantModCsv);
+            using var writer1 = new StreamWriter(githubModCsvPath, false);
+            using var csv1 = new CsvWriter(writer1, new CultureInfo("ja-JP", false));
+            csv1.WriteRecords(githubModInformationCsv);
+
+           UpdateModAssistantModCsv();
         }
 
-        public void ImportCsv()
+        public void UpdateModAssistantModCsv()
         {
+            if(modAssistantAllMods != null)
+            {
+                foreach (var a in modAssistantAllMods)
+                {
+                    if (!githubModAndOriginalBoolAndUrl.ContainsKey(a.name))
+                    {
+                        ModAssistantModInformationCsv modAssistantCsvInstance;
+                        if (localFilesInfoDictionary.ContainsKey(a.name))
+                        {
+                            modAssistantCsvInstance = new ModAssistantModInformationCsv()
+                            {
+                                ModAssistantMod = a.name,
+                                LocalVersion = localFilesInfoDictionary[a.name].ToString(),
+                                ModAssistantVersion = a.version,
+                            };
+                        }
+                        else
+                        {
+                            modAssistantCsvInstance = new ModAssistantModInformationCsv()
+                            {
+                                ModAssistantMod = a.name,
+                                LocalVersion = a.version,
+                                ModAssistantVersion = a.version,
+                            };
+                        }
+                        
+                        updateModAssistantModCsvList.Add(modAssistantCsvInstance);
+                    }
+                }
+                using var writer2 = new StreamWriter(modAssistantModCsvPath, false);
+                using var csv2 = new CsvWriter(writer2, new CultureInfo("ja-JP", false));
+                csv2.WriteRecords(updateModAssistantModCsvList);
+            }
+        }
 
+        public async Task ImportCsv()
+        {
+            if (!Directory.Exists(importCsv))
+            {
+                Console.WriteLine($"{importCsv}がありません");
+                Console.WriteLine($"{importCsv}を作成します");
+                Directory.CreateDirectory(importCsv);
+            }
+            if (!File.Exists(Path.Combine(importCsv, "GithubModData.csv")))
+            {
+                Console.WriteLine($"{Path.Combine(importCsv, "GithubModData.csv")}がありません");
+                Console.WriteLine("終了します");
+                return;
+            }
+
+            using var reader = new StreamReader(importCsv);
+            using var csv = new CsvReader(reader, new CultureInfo("ja-JP", false));
+            IEnumerable<GithubModInformationCsv> githubModInformationEnum = csv.GetRecords<GithubModInformationCsv>();
+
+            foreach(var a in githubModInformationEnum)
+            {
+                await githubManager.GithubModDownloadAsync(a.GithubUrl);
+            }
         }
     }
 }

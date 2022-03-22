@@ -13,6 +13,7 @@ namespace GithubModUpdateCheckerConsole
     {
         public async Task GithubModDownloadAsync(string url)
         {
+            if (url == "pass") return;
 
             var credential = new Credentials(Settings.Instance.OAuthToken);
             GitHubClient github = new GitHubClient(new ProductHeaderValue("GithubModUpdateChecker"));
@@ -31,18 +32,29 @@ namespace GithubModUpdateCheckerConsole
             var response = github.Repository.Release.GetLatest(owner, name);
             Console.WriteLine(response.Result.HtmlUrl);
 
-            var latestVersion = new Version(response.Result.TagName[1..]); // remove `v` from `vW.X.Y.Z
+            var latestVersion = new Version(response.Result.TagName[..].Replace("v",""));
             if (latestVersion > CurrentVersion)
             {
-                foreach (var item in response.Result.Assets)
+                Console.WriteLine($"{owner}/{name}の最新バージョン:{latestVersion}が見つかりました");
+                Console.WriteLine("ダウンロードしますか？ [y/n]");
+                string download=Console.ReadLine();
+
+                if (download == "y")
                 {
-                    await DownloadModAsync(item.BrowserDownloadUrl, item.Name);
+                    foreach (var item in response.Result.Assets)
+                    {
+                        Console.WriteLine("ダウンロード中");
+                        await DownloadModAsync(item.BrowserDownloadUrl, item.Name);
+                        Console.WriteLine("ダウンロード成功！");
+                    }
                 }
             }
         }
 
         public async Task<Version> GetGithubModLatestVersion(string url)
         {
+            if (url == "pass") return new Version("0.0.0");
+            
             var credential = new Credentials(Settings.Instance.OAuthToken);
             GitHubClient github = new GitHubClient(new ProductHeaderValue("GithubModUpdateChecker"));
             github.Credentials = credential;
@@ -55,8 +67,18 @@ namespace GithubModUpdateCheckerConsole
             string name = tem.Substring(nextSlashPosition + 1);
             Console.WriteLine(name);
 
-            var response = github.Repository.Release.GetLatest(owner, name);
-            var latestVersion = new Version(response.Result.TagName[1..]);
+            Version latestVersion;
+
+            try
+            {
+                var response = github.Repository.Release.GetLatest(owner, name);
+                latestVersion = new Version(response.Result.TagName.Replace("v", ""));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return new Version("0.0.0");
+            }
 
             return latestVersion;
         }
@@ -66,13 +88,20 @@ namespace GithubModUpdateCheckerConsole
         {
             using HttpClient httpClient = new();
             using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(uri));
-            using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-            if (response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                using var content = response.Content;
-                using var stream = await content.ReadAsStreamAsync();
-                using var fileStream = new FileStream($".\\{name}", FileMode.Create, FileAccess.Write, FileShare.None);
-                await stream.CopyToAsync(fileStream);
+                using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+                if (response.StatusCode == HttpStatusCode.OK)
+                {
+                    using var content = response.Content;
+                    using var stream = await content.ReadAsStreamAsync();
+                    using var fileStream = new FileStream($".\\{name}", FileMode.Create, FileAccess.Write, FileShare.None);
+                    await stream.CopyToAsync(fileStream);
+                }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex.Message);
             }
         }
     }

@@ -9,8 +9,7 @@ using GithubModUpdateCheckerConsole.Interfaces;
 
 
 string configFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
-string githubModCsvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "GithubModData.csv");
-// string modAssistantModCsvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "ModAssistantModData.csv");
+bool initialize = false;
 
 IMainManager mainManager = new MainManager();
 
@@ -21,6 +20,7 @@ if (!File.Exists(configFile))
     Console.WriteLine("There is not config.json");
     Console.WriteLine("Start Initialize");
     await mainManager.Initialize();
+    initialize = true;
 }
 
 configManager.LoadConfigFile(configFile);
@@ -31,35 +31,16 @@ string? mode=Console.ReadLine();
 if (mode == "2")
 {
     Console.WriteLine("Start importing csv");
-    mainManager.ImportCsv();
+    await mainManager.ImportCsv();
 }
 else
 {
     Console.WriteLine("Start checking update");
-    mainManager.UpdateAsync();
+    await mainManager.UpdateGithubModAsync();
 }
 
+Console.WriteLine("returnで終了します");
 Console.ReadLine();
-
-
-/*
-if (File.Exists(githubModCsvPath))
-{
-    using var reader = new StreamReader(githubModCsvPath);
-    using var csv = new CsvReader(reader, new CultureInfo("ja-JP", false));
-    var githubModInformationCsv = csv.GetRecords<GithubModInformationCsv>();
-
-    foreach (var githubModInformation in githubModInformationCsv)
-    {
-        MainManager.ModAndUrl.Add(githubModInformation.GithubMod, githubModInformation.GithubUrl);
-    }
-}
-*/
-
-/*
-var githubTask = new GithubTask();
-await githubTask.GithubModDownloadAsync();
-*/
 
 
 

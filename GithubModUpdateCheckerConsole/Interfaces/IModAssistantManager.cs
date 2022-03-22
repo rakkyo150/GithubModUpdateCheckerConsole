@@ -1,9 +1,11 @@
-﻿using System.Threading.Tasks;
+﻿using GithubModUpdateCheckerConsole.Utils;
+using System.Threading.Tasks;
 
 namespace GithubModUpdateCheckerConsole.Interfaces
 {
     public interface IModAssistantManager
     {
-        Task GetAllModAssistantMods(string modAssistantModInformationUrl);
+        Task<ModAssistantModInformation[]> GetAllModAssistantMods();
+        string GetGameVersion();
     }
 }
