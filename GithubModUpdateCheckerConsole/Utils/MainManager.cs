@@ -205,7 +205,9 @@ namespace GithubModUpdateCheckerConsole
 
             foreach (var a in githubModInformationEnum)
             {
-                await githubManager.GithubModDownloadAsync(a.GithubUrl,new Version(a.LocalVersion));
+                // すべてダウンロードしたいのでnew Version("0.0.0")を渡す
+                // ダウンロードされるのは最新のもの
+                await githubManager.GithubModDownloadAsync(a.GithubUrl,new Version("0.0.0"));
             }
         }
     }
