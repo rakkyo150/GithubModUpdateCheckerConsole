@@ -10,7 +10,7 @@ namespace GithubModUpdateCheckerConsole.Utils
     {
         public Dictionary<string, Version> GetLocalFilesInfo(string pluginsFolderPath)
         {
-            Console.WriteLine("Start Getting FileInfo");
+            // Console.WriteLine("Start Getting FileInfo");
 
             Dictionary<string, Version> filesInfo = new Dictionary<string, Version>();
 

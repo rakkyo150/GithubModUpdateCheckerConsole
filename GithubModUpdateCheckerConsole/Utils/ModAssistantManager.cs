@@ -24,7 +24,7 @@ namespace GithubModUpdateCheckerConsole.Utils
                 var resp = await httpClient.GetStringAsync(modAssistantModInformationUrl);
                 modAssistantMod = JsonConvert.DeserializeObject<ModAssistantModInformation[]>(resp);
 
-                Console.WriteLine("Fisnish GetAllMods");
+                // Console.WriteLine("Fisnish GetAllMods");
             }
             catch (Exception ex) { Console.WriteLine(ex.Message); }
 

@@ -23,6 +23,7 @@ namespace GithubModUpdateCheckerConsole
         private string configFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
         private string importCsv = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ImportGithubCsv");
         private string pluginsPath = Path.Combine(Settings.Instance.BeatSaberExeFolderPath, "Plugins");
+        private string downoadedPluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
         private string githubModCsvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "GithubModData.csv");
         private string modAssistantModCsvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "ModAssistantModData.csv");
 
@@ -54,16 +55,23 @@ namespace GithubModUpdateCheckerConsole
             {
                 Console.WriteLine("Make a Config File");
                 configManager.MakeConfigFile(configFile);
+            }
+
+            if (!Directory.Exists(downoadedPluginsPath))
+            {
+                Directory.CreateDirectory(downoadedPluginsPath);
+            }
+
+            if (!Directory.Exists(importCsv))
+            {
                 Directory.CreateDirectory(importCsv);
             }
 
-            // 以下、Modの振り分け準備
-            Console.WriteLine("Start GetAllModAssistantMods");
+            // Console.WriteLine("Start GetAllModAssistantMods");
             modAssistantAllMods = await modAssistantManager.GetAllModAssistantMods();
 
             localFilesInfoDictionary = dataManager.GetLocalFilesInfo(pluginsPath);
 
-            // 以下、Modの振り分け、GithubModの情報入力とcsvへの登録
             foreach (KeyValuePair<string, Version> fileAndVersion in localFilesInfoDictionary)
             {
                 foreach (var item in modAssistantAllMods)
@@ -104,7 +112,7 @@ namespace GithubModUpdateCheckerConsole
             }
             else
             {
-                Console.WriteLine("Start GetAllModAssistantMods");
+                // Console.WriteLine("Start GetAllModAssistantMods");
                 modAssistantAllMods = await modAssistantManager.GetAllModAssistantMods();
 
                 using var reader = new StreamReader(githubModCsvPath);
@@ -156,31 +164,19 @@ namespace GithubModUpdateCheckerConsole
             {
                 foreach (var a in modAssistantAllMods)
                 {
-                    if (!githubModAndOriginalBoolAndUrl.ContainsKey(a.name))
+                    if (githubModAndOriginalBoolAndUrl.ContainsKey(a.name))
                     {
-                        ModAssistantModInformationCsv modAssistantCsvInstance;
-                        if (localFilesInfoDictionary.ContainsKey(a.name))
+                        ModAssistantModInformationCsv modAssistantCsvInstance = new ModAssistantModInformationCsv()
                         {
-                            modAssistantCsvInstance = new ModAssistantModInformationCsv()
-                            {
-                                ModAssistantMod = a.name,
-                                LocalVersion = localFilesInfoDictionary[a.name].ToString(),
-                                ModAssistantVersion = a.version,
-                            };
-                        }
-                        else
-                        {
-                            modAssistantCsvInstance = new ModAssistantModInformationCsv()
-                            {
-                                ModAssistantMod = a.name,
-                                LocalVersion = a.version,
-                                ModAssistantVersion = a.version,
-                            };
-                        }
+                            ModAssistantMod = a.name,
+                            LocalVersion = localFilesInfoDictionary[a.name].ToString(),
+                            ModAssistantVersion = a.version,
+                        };
 
                         updateModAssistantModCsvList.Add(modAssistantCsvInstance);
                     }
                 }
+
                 using var writer2 = new StreamWriter(modAssistantModCsvPath, false);
                 using var csv2 = new CsvWriter(writer2, new CultureInfo("ja-JP", false));
                 csv2.WriteRecords(updateModAssistantModCsvList);

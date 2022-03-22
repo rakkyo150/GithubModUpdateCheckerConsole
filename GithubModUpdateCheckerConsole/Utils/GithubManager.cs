@@ -90,6 +90,10 @@ namespace GithubModUpdateCheckerConsole
                 {
                     using var content = response.Content;
                     using var stream = await content.ReadAsStreamAsync();
+                    if(!Directory.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins")))
+                    {
+                        Directory.CreateDirectory(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins"));
+                    }
                     string pluginDownloadPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins", name);
                     using var fileStream = new FileStream(pluginDownloadPath, FileMode.Create, FileAccess.Write, FileShare.None);
                     await stream.CopyToAsync(fileStream);
