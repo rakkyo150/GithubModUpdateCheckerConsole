@@ -24,7 +24,7 @@ namespace GithubModUpdateCheckerConsole
         private string configFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
         private string importCsv = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ImportGithubCsv");
         private string pluginsPath = Path.Combine(Settings.Instance.BeatSaberExeFolderPath, "Plugins");
-        private string downloadedPluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PluginsTemp");
+        private string downloadedPluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ModsTemp");
         private string githubModCsvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "GithubModData.csv");
         private string modAssistantModCsvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "ModAssistantModData.csv");
         private string backupFodlerPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Backup");
@@ -144,11 +144,11 @@ namespace GithubModUpdateCheckerConsole
                 if (latestVersion > localFilesInfoDictionary[fileAndOriginalBoolAndVersion.Key])
                 {
                     await githubManager.GithubModDownloadAsync(githubModAndOriginalBoolAndUrl[fileAndOriginalBoolAndVersion.Key].Item2,
-                        localFilesInfoDictionary[fileAndOriginalBoolAndVersion.Key]);
+                        localFilesInfoDictionary[fileAndOriginalBoolAndVersion.Key],downloadedPluginsPath);
                 }
             }
 
-            dataManager.DirectoryCopy(downloadedPluginsPath, pluginsPath, true);
+            await dataManager.OrganizeDownloadFileStructure(downloadedPluginsPath, Settings.Instance.BeatSaberExeFolderPath);
 
             using var writer1 = new StreamWriter(githubModCsvPath, false);
             using var csv1 = new CsvWriter(writer1, new CultureInfo("ja-JP", false));
@@ -205,8 +205,10 @@ namespace GithubModUpdateCheckerConsole
             {
                 // すべてダウンロードしたいのでnew Version("0.0.0")を渡す
                 // ダウンロードされるのは最新のもの
-                await githubManager.GithubModDownloadAsync(a.GithubUrl,new Version("0.0.0"));
+                await githubManager.GithubModDownloadAsync(a.GithubUrl,new Version("0.0.0"),downloadedPluginsPath);
             }
+
+            await dataManager.OrganizeDownloadFileStructure(downloadedPluginsPath, downloadedPluginsPath);
         }
 
         public void Backup()
@@ -236,7 +238,7 @@ namespace GithubModUpdateCheckerConsole
             ZipFile.CreateFromDirectory(zipPath, Path.Combine(backupFodlerPath, $"BS{gameVersion}-{now}.zip"));
         }
 
-        public void CleanPluginsTemp()
+        public void CleanModsTemp()
         {
             if (!Directory.Exists(downloadedPluginsPath))
             {

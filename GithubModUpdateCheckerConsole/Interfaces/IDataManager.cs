@@ -2,6 +2,7 @@
 using GithubModUpdateCheckerConsole.Utils;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace GithubModUpdateCheckerConsole.Interfaces
 {
@@ -19,5 +20,7 @@ namespace GithubModUpdateCheckerConsole.Interfaces
             ref Dictionary<string, Tuple<bool, string>> githubModAndOriginalBoolAndUrl, ref List<GithubModInformationCsv> githubModInformationCsv);
 
         void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs);
+
+        Task OrganizeDownloadFileStructure(string sourceDirFullPath, string destDirFullPath);
     }
 }

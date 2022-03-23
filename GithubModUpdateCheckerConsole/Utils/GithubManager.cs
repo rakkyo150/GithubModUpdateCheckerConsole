@@ -2,6 +2,7 @@
 using Octokit;
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -11,7 +12,7 @@ namespace GithubModUpdateCheckerConsole
 {
     internal class GithubManager : IGithubManager
     {
-        public async Task GithubModDownloadAsync(string url,Version currentVersion)
+        public async Task GithubModDownloadAsync(string url,Version currentVersion,string destDirFullPath)
         {
             if (url == "p") return;
 
@@ -19,8 +20,8 @@ namespace GithubModUpdateCheckerConsole
             GitHubClient github = new GitHubClient(new ProductHeaderValue("GithubModUpdateChecker"));
             github.Credentials = credential;
 
-            string tem = url.Replace("https://github.com/", "");
-            int nextSlashPosition = tem.IndexOf('/');
+            string temp = url.Replace("https://github.com/", "");
+            int nextSlashPosition = temp.IndexOf('/');
 
             if (nextSlashPosition == -1)
             {
@@ -29,8 +30,8 @@ namespace GithubModUpdateCheckerConsole
                 return;
             }
 
-            string owner = tem.Substring(0, nextSlashPosition);
-            string name = tem.Substring(nextSlashPosition + 1);
+            string owner = temp.Substring(0, nextSlashPosition);
+            string name = temp.Substring(nextSlashPosition + 1);
 
             var response = github.Repository.Release.GetLatest(owner, name);
 
@@ -46,7 +47,7 @@ namespace GithubModUpdateCheckerConsole
                     foreach (var item in response.Result.Assets)
                     {
                         Console.WriteLine("ダウンロード中");
-                        await DownloadModAsync(item.BrowserDownloadUrl, item.Name);
+                        await DownloadModAsync(item.BrowserDownloadUrl, item.Name, destDirFullPath);
                         Console.WriteLine("ダウンロード成功！");
                     }
                 }
@@ -61,8 +62,8 @@ namespace GithubModUpdateCheckerConsole
             GitHubClient github = new GitHubClient(new ProductHeaderValue("GithubModUpdateChecker"));
             github.Credentials = credential;
 
-            string tem = url.Replace("https://github.com/", "");
-            int nextSlashPosition = tem.IndexOf('/');
+            string temp = url.Replace("https://github.com/", "");
+            int nextSlashPosition = temp.IndexOf('/');
 
             if(nextSlashPosition == -1)
             {
@@ -71,8 +72,8 @@ namespace GithubModUpdateCheckerConsole
                 return new Version("0.0.0");
             }
             
-            string owner = tem.Substring(0, nextSlashPosition);
-            string name = tem.Substring(nextSlashPosition + 1);
+            string owner = temp.Substring(0, nextSlashPosition);
+            string name = temp.Substring(nextSlashPosition + 1);
 
             Version latestVersion;
 
@@ -93,7 +94,7 @@ namespace GithubModUpdateCheckerConsole
         }
 
         // Based on https://qiita.com/thrzn41/items/2754bec8ebad97ecd7fd
-        public async Task DownloadModAsync(string uri, string name)
+        public async Task DownloadModAsync(string uri, string name, string destDirFullPath)
         {
             using HttpClient httpClient = new();
             using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(uri));
@@ -104,11 +105,11 @@ namespace GithubModUpdateCheckerConsole
                 {
                     using var content = response.Content;
                     using var stream = await content.ReadAsStreamAsync();
-                    if(!Directory.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PluginsTem")))
+                    if(!Directory.Exists(destDirFullPath))
                     {
-                        Directory.CreateDirectory(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins"));
+                        Directory.CreateDirectory(destDirFullPath);
                     }
-                    string pluginDownloadPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins", name);
+                    string pluginDownloadPath = Path.Combine(destDirFullPath, name);
                     using var fileStream = new FileStream(pluginDownloadPath, FileMode.Create, FileAccess.Write, FileShare.None);
                     await stream.CopyToAsync(fileStream);
                 }
