@@ -22,7 +22,11 @@ if (!File.Exists(configFile))
 
 configManager.LoadConfigFile(configFile);
 
-Console.WriteLine("Choose mode : [1] Check Update [2] Import csv");
+Console.WriteLine("バックアップを作成します");
+mainManager.Backup();
+
+mainManager.CleanPluginsTemp();
+Console.WriteLine("モードを選んでください : [1] アップデートチェック [2] csvからインポート");
 string? mode = Console.ReadLine();
 
 if (mode == "2")

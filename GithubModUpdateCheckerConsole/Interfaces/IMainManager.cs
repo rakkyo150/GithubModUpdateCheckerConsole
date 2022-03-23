@@ -8,5 +8,9 @@ namespace GithubModUpdateCheckerConsole.Interfaces
         Task UpdateGithubModAsync();
         void UpdateModAssistantModCsv();
         Task ImportCsv();
+
+        void Backup();
+
+        void CleanPluginsTemp();
     }
 }

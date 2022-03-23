@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Threading.Tasks;
 
 namespace GithubModUpdateCheckerConsole
@@ -23,10 +24,11 @@ namespace GithubModUpdateCheckerConsole
         private string configFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
         private string importCsv = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ImportGithubCsv");
         private string pluginsPath = Path.Combine(Settings.Instance.BeatSaberExeFolderPath, "Plugins");
-        private string downoadedPluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
-        private string githubModCsvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "GithubModData.csv");
-        private string modAssistantModCsvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "ModAssistantModData.csv");
-
+        private string downloadedPluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PluginsTemp");
+        private string githubModCsvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "GithubModData.csv");
+        private string modAssistantModCsvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "ModAssistantModData.csv");
+        private string backupFodlerPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Backup");
+        
         Dictionary<string, Version> localFilesInfoDictionary;
 
         private Dictionary<string, Tuple<bool, string>> githubModAndOriginalBoolAndUrl = new Dictionary<string, Tuple<bool, string>>();
@@ -57,16 +59,6 @@ namespace GithubModUpdateCheckerConsole
                 configManager.MakeConfigFile(configFile);
             }
 
-            if (!Directory.Exists(downoadedPluginsPath))
-            {
-                Directory.CreateDirectory(downoadedPluginsPath);
-            }
-
-            if (!Directory.Exists(importCsv))
-            {
-                Directory.CreateDirectory(importCsv);
-            }
-
             // Console.WriteLine("Start GetAllModAssistantMods");
             modAssistantAllMods = await modAssistantManager.GetAllModAssistantMods();
 
@@ -76,7 +68,11 @@ namespace GithubModUpdateCheckerConsole
             {
                 foreach (var item in modAssistantAllMods)
                 {
-                    passInputGithubModInformation = dataManager.DetectModAssistantModAndRemoveFromManagement(item, fileAndVersion, ref detectedModAssistantModCsvList);
+                    passInputGithubModInformation = dataManager.DetectModAssistantModAndRemoveFromManagement(item, fileAndVersion, ref detectedModAssistantModCsvList, out bool loopBreak);
+                    if (loopBreak)
+                    {
+                        break;
+                    }
                 }
 
                 if (!passInputGithubModInformation)
@@ -85,9 +81,9 @@ namespace GithubModUpdateCheckerConsole
                 }
             }
 
-            if (!Directory.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data")))
+            if (!Directory.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data")))
             {
-                Directory.CreateDirectory(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data"));
+                Directory.CreateDirectory(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data"));
             }
 
             if (detectedModAssistantModCsvList.Count > 0)
@@ -152,6 +148,8 @@ namespace GithubModUpdateCheckerConsole
                 }
             }
 
+            dataManager.DirectoryCopy(downloadedPluginsPath, pluginsPath, true);
+
             using var writer1 = new StreamWriter(githubModCsvPath, false);
             using var csv1 = new CsvWriter(writer1, new CultureInfo("ja-JP", false));
             csv1.WriteRecords(githubModInformationCsv);
@@ -208,6 +206,50 @@ namespace GithubModUpdateCheckerConsole
                 // すべてダウンロードしたいのでnew Version("0.0.0")を渡す
                 // ダウンロードされるのは最新のもの
                 await githubManager.GithubModDownloadAsync(a.GithubUrl,new Version("0.0.0"));
+            }
+        }
+
+        public void Backup()
+        { 
+            if (!Directory.Exists(backupFodlerPath))
+            {
+                Console.WriteLine($"{backupFodlerPath}がありません");
+                Console.WriteLine($"{backupFodlerPath}を作成します");
+                Directory.CreateDirectory(backupFodlerPath);
+            }
+            if(!Directory.Exists(importCsv))
+            {
+                Console.WriteLine($"{importCsv}がありません");
+                Console.WriteLine($"{importCsv}を作成します");
+                Directory.CreateDirectory(importCsv);
+            }
+
+            gameVersion =modAssistantManager.GetGameVersion();
+            string now=DateTime.Now.ToString("yyyyMMddHHmmss");
+            string zipPath= Path.Combine(backupFodlerPath, $"BS{gameVersion}-{now}");
+            Directory.CreateDirectory(zipPath);
+
+            dataManager.DirectoryCopy(pluginsPath, Path.Combine(zipPath,"Plugins"), true);
+            dataManager.DirectoryCopy(importCsv, Path.Combine(zipPath, "Data"), true);
+            File.Copy(configFile, Path.Combine(zipPath, "config.json"), true);
+
+            ZipFile.CreateFromDirectory(zipPath, Path.Combine(backupFodlerPath, $"BS{gameVersion}-{now}.zip"));
+        }
+
+        public void CleanPluginsTemp()
+        {
+            if (!Directory.Exists(downloadedPluginsPath))
+            {
+                Console.WriteLine($"{downloadedPluginsPath}がありません");
+                Console.WriteLine($"{downloadedPluginsPath}を作成します");
+                Directory.CreateDirectory(downloadedPluginsPath);
+            }
+            DirectoryInfo dir = new DirectoryInfo(downloadedPluginsPath);
+
+            FileInfo[] files = dir.GetFiles();
+            foreach (FileInfo file in files)
+            {
+                file.Delete();
             }
         }
     }

@@ -104,7 +104,7 @@ namespace GithubModUpdateCheckerConsole
                 {
                     using var content = response.Content;
                     using var stream = await content.ReadAsStreamAsync();
-                    if(!Directory.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins")))
+                    if(!Directory.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PluginsTem")))
                     {
                         Directory.CreateDirectory(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins"));
                     }
