@@ -10,7 +10,7 @@ namespace GithubModUpdateCheckerConsole.Utils
 {
     internal class DataManager : IDataManager
     {
-        public Dictionary<string, Version> GetLocalFilesInfo(string pluginsFolderPath)
+        public Dictionary<string, Version> GetLocalModFilesInfo(string pluginsFolderPath)
         {
             // Console.WriteLine("Start Getting FileInfo");
 
@@ -30,7 +30,7 @@ namespace GithubModUpdateCheckerConsole.Utils
             return filesInfo;
         }
 
-        public bool DetectModAssistantModAndRemoveFromManagement(ModAssistantModInformation item, KeyValuePair<string, Version> fileAndVersion, ref List<ModAssistantModInformationCsv> detectedModAssistantModCsvList, out bool loopBreak)
+        public bool DetectMAModAndRemoveFromManagement(ModAssistantModInformation item, KeyValuePair<string, Version> fileAndVersion, ref List<ModAssistantModInformationCsv> detectedModAssistantModCsvList, out bool loopBreak)
         {
             loopBreak= false;
             bool pass = false;
@@ -106,7 +106,7 @@ namespace GithubModUpdateCheckerConsole.Utils
             githubModInformationCsv.Add(githubModInstance);
         }
 
-        public void DetectModAssistantModForUpdate(ModAssistantModInformation item, ref Dictionary<string, Tuple<bool, string>> githubModAndOriginalBoolAndUrl, ref List<GithubModInformationCsv> githubModInformationCsv)
+        public void DetectMAModForUpdate(ModAssistantModInformation item, ref Dictionary<string, Tuple<bool, string>> githubModAndOriginalBoolAndUrl, ref List<GithubModInformationCsv> githubModInformationCsv)
         {
             if (githubModAndOriginalBoolAndUrl.ContainsKey(item.name))
             {

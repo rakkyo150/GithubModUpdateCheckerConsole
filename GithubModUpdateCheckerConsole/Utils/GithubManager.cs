@@ -12,7 +12,7 @@ namespace GithubModUpdateCheckerConsole
 {
     internal class GithubManager : IGithubManager
     {
-        public async Task GithubModDownloadAsync(string url,Version currentVersion,string destDirFullPath)
+        public async Task DownloadGithubModAsync(string url,Version currentVersion,string destDirFullPath)
         {
             if (url == "p") return;
 
@@ -47,7 +47,7 @@ namespace GithubModUpdateCheckerConsole
                     foreach (var item in response.Result.Assets)
                     {
                         Console.WriteLine("ダウンロード中");
-                        await DownloadModAsync(item.BrowserDownloadUrl, item.Name, destDirFullPath);
+                        await DownloadModHelperAsync(item.BrowserDownloadUrl, item.Name, destDirFullPath);
                         Console.WriteLine("ダウンロード成功！");
                     }
                 }
@@ -94,7 +94,7 @@ namespace GithubModUpdateCheckerConsole
         }
 
         // Based on https://qiita.com/thrzn41/items/2754bec8ebad97ecd7fd
-        public async Task DownloadModAsync(string uri, string name, string destDirFullPath)
+        public async Task DownloadModHelperAsync(string uri, string name, string destDirFullPath)
         {
             using HttpClient httpClient = new();
             using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(uri));
