@@ -163,7 +163,7 @@ namespace GithubModUpdateCheckerConsole
             {
                 foreach (var a in modAssistantAllMods)
                 {
-                    if (githubModAndOriginalBoolAndUrl.ContainsKey(a.name))
+                    if (!githubModAndOriginalBoolAndUrl.ContainsKey(a.name) && localFilesInfoDictionary.ContainsKey(a.name))
                     {
                         ModAssistantModInformationCsv modAssistantCsvInstance = new ModAssistantModInformationCsv()
                         {

@@ -2,6 +2,7 @@
 using GithubModUpdateCheckerConsole.Structure;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Threading.Tasks;
@@ -90,8 +91,21 @@ namespace GithubModUpdateCheckerConsole.Utils
                 originalMod = false;
             }
 
-            Console.WriteLine("GithubのリポジトリのUrlを入力してください");
-            var githubUrl = Console.ReadLine();
+            string githubUrl="p";
+            bool finish = false;
+            while (!finish)
+            {
+                Console.WriteLine("GithubのリポジトリのUrlを入力してください(検索したい場合は\"s\"を入力してください)");
+                githubUrl = Console.ReadLine();
+                if (githubUrl == "s")
+                {
+                    OpenUrl(githubUrl);
+                }
+                else
+                {
+                    finish = true;
+                }
+            }
 
             Console.WriteLine("Githubの最新のリリースのタグ情報を取得します");
 
@@ -238,6 +252,17 @@ namespace GithubModUpdateCheckerConsole.Utils
                     }
                 }
             }
+        }
+
+        private Process OpenUrl(string url)
+        {
+            ProcessStartInfo pi = new ProcessStartInfo()
+            {
+                FileName = url,
+                UseShellExecute = true,
+            };
+
+            return Process.Start(pi);
         }
     }
 }

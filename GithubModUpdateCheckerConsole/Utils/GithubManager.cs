@@ -40,7 +40,6 @@ namespace GithubModUpdateCheckerConsole
             int position = 0;
             foreach (char item in latestVersionRaw)
             {
-                Console.WriteLine(item);
                 if (item >= '0' && item <= '9')
                 {
                     break;
@@ -98,7 +97,6 @@ namespace GithubModUpdateCheckerConsole
                 int position=0;
                 foreach(char item in latestVersionRaw)
                 {
-                    Console.WriteLine(item);
                     if (item >= '0' && item <= '9')
                     {
                         break;
