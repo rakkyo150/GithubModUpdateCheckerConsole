@@ -35,6 +35,7 @@ namespace GithubModUpdateCheckerConsole.Utils
             loopBreak= false;
             bool pass = false;
 
+
             if (item.name == fileAndVersion.Key)
             {
                 loopBreak = true;
@@ -74,6 +75,9 @@ namespace GithubModUpdateCheckerConsole.Utils
         public void InputGithubModInformation(IGithubManager githubManager, KeyValuePair<string, Version> fileAndVersion, ref List<GithubModInformationCsv> githubModInformationCsv)
         {
             Console.WriteLine($"{fileAndVersion.Key} : {fileAndVersion.Value}");
+
+            // プリセット機能が欲しい
+
             Console.WriteLine("オリジナルModですか？ [y/n]");
             var ok = Console.ReadLine();
             bool originalMod;

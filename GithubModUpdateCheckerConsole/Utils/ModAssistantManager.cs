@@ -25,6 +25,19 @@ namespace GithubModUpdateCheckerConsole.Utils
                 modAssistantMod = JsonConvert.DeserializeObject<ModAssistantModInformation[]>(resp);
 
                 // Console.WriteLine("Fisnish GetAllMods");
+
+                foreach(var mod in modAssistantMod)
+                {
+                    // Mod名とファイル名が違う、よく使うModに対応
+                    if (mod.name == "BeatSaberMarkupLanguage")
+                    {
+                        mod.name = "BSML";
+                    }
+                    else if (mod.name == "BS Utils")
+                    {
+                        mod.name = "BS_Utils";
+                    }
+                }
             }
             catch (Exception ex) { Console.WriteLine(ex.Message); }
 

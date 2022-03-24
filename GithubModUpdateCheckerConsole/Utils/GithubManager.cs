@@ -35,7 +35,20 @@ namespace GithubModUpdateCheckerConsole
 
             var response = github.Repository.Release.GetLatest(owner, name);
 
-            var latestVersion = new Version(response.Result.TagName[..].Replace("v", ""));
+            string latestVersionRaw = response.Result.TagName;
+
+            int position = 0;
+            foreach (char item in latestVersionRaw)
+            {
+                Console.WriteLine(item);
+                if (item >= '0' && item <= '9')
+                {
+                    break;
+                }
+                position++;
+            }
+            Version latestVersion = new Version(latestVersionRaw.Substring(position));
+            
             if (latestVersion > currentVersion)
             {
                 Console.WriteLine($"{owner}/{name}の最新バージョン:{latestVersion}が見つかりました");
@@ -80,7 +93,20 @@ namespace GithubModUpdateCheckerConsole
             try
             {
                 var response = github.Repository.Release.GetLatest(owner, name);
-                latestVersion = new Version(response.Result.TagName.Replace("v", ""));
+                string latestVersionRaw = response.Result.TagName;
+
+                int position=0;
+                foreach(char item in latestVersionRaw)
+                {
+                    Console.WriteLine(item);
+                    if (item >= '0' && item <= '9')
+                    {
+                        break;
+                    }
+                    position++;
+                }
+                latestVersion = new Version(latestVersionRaw.Substring(position));
+                Console.WriteLine(latestVersion.ToString());
             }
             catch (Exception ex)
             {

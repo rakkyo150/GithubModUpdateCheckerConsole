@@ -238,7 +238,7 @@ namespace GithubModUpdateCheckerConsole
             ZipFile.CreateFromDirectory(zipPath, Path.Combine(backupFodlerPath, $"BS{gameVersion}-{now}.zip"));
         }
 
-        public void CleanModsTemp()
+        public void CleanModsTemp(string path)
         {
             if (!Directory.Exists(downloadModsTemp))
             {
@@ -248,10 +248,24 @@ namespace GithubModUpdateCheckerConsole
             }
             DirectoryInfo dir = new DirectoryInfo(downloadModsTemp);
 
-            FileInfo[] files = dir.GetFiles();
-            foreach (FileInfo file in files)
+            //ディレクトリ以外の全ファイルを削除
+            string[] filePaths = Directory.GetFiles(path);
+            foreach (string filePath in filePaths)
             {
-                file.Delete();
+                File.SetAttributes(filePath, FileAttributes.Normal);
+                File.Delete(filePath);
+            }
+
+            //ディレクトリの中のディレクトリも再帰的に削除
+            string[] directiryPaths = Directory.GetDirectories(path);
+            foreach (string directoryPath in directiryPaths)
+            {
+                CleanModsTemp(directoryPath);
+            }
+
+            if (path != downloadModsTemp)
+            {
+                Directory.Delete(path, false);
             }
         }
     }

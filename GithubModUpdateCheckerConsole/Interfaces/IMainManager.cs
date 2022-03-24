@@ -11,6 +11,6 @@ namespace GithubModUpdateCheckerConsole.Interfaces
 
         void Backup();
 
-        void CleanModsTemp();
+        void CleanModsTemp(string downloadModsTemp);
     }
 }

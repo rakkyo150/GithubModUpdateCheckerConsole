@@ -5,6 +5,7 @@ using System;
 using System.IO;
 
 
+string downloadModsTemp = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ModsTemp");
 string configFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
 bool initialize = false;
 
@@ -25,7 +26,7 @@ configManager.LoadConfigFile(configFile);
 Console.WriteLine("バックアップを作成します");
 mainManager.Backup();
 
-mainManager.CleanModsTemp();
+mainManager.CleanModsTemp(downloadModsTemp);
 Console.WriteLine("モードを選んでください : [1] アップデートチェック [2] csvからインポート");
 string? mode = Console.ReadLine();
 
