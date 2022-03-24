@@ -3,7 +3,7 @@ using System;
 
 namespace GithubModUpdateCheckerConsole.Structure
 {
-    public class ModAssistantModInformationCsv
+    public class MAModInformationCsv
     {
         [Index(0)]
         public string ModAssistantMod { get; set; }

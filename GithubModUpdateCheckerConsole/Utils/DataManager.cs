@@ -31,7 +31,7 @@ namespace GithubModUpdateCheckerConsole.Utils
             return filesInfo;
         }
 
-        public bool DetectMAModAndRemoveFromManagementForInitialize(ModAssistantModInformation item, KeyValuePair<string, Version> fileAndVersion, ref List<ModAssistantModInformationCsv> detectedModAssistantModCsvList, out bool loopBreaklocalFileSearchLoopBreak )
+        public bool DetectMAModAndRemoveFromManagementForInitialize(ModAssistantModInformation item, KeyValuePair<string, Version> fileAndVersion, ref List<MAModInformationCsv> detectedModAssistantModCsvList, out bool loopBreaklocalFileSearchLoopBreak )
         {
             loopBreaklocalFileSearchLoopBreak = false;
             bool passInputGithubModInformation= false;
@@ -58,7 +58,7 @@ namespace GithubModUpdateCheckerConsole.Utils
                 {
                     Console.WriteLine("ModAssistantModData.csvに追加します");
 
-                    var modAssistantCsvInstance = new ModAssistantModInformationCsv()
+                    var modAssistantCsvInstance = new MAModInformationCsv()
                     {
                         ModAssistantMod = fileAndVersion.Key,
                         LocalVersion = fileAndVersion.Value.ToString(),
@@ -88,12 +88,12 @@ namespace GithubModUpdateCheckerConsole.Utils
             }
         }
 
-        public bool DetectMAModAndRemoveFromManagementForUpdate(ModAssistantModInformation item, KeyValuePair<string, Version> fileAndVersion)
+        public bool DetectMAModAndRemoveFromManagementForUpdate(ModAssistantModInformation item, KeyValuePair<string, Version> fileAndVersion,  List<string> installedMAMod)
         {
-            bool passInputGithubModInformation = false;
+            bool passInputGithubModInformation = true;
 
 
-            if (item.name == fileAndVersion.Key)
+            if (!installedMAMod.Contains(item.name) && item.name == fileAndVersion.Key)
             {
                 Version modAssistantModVersion = new Version(item.version);
                 if (modAssistantModVersion >= fileAndVersion.Value)
@@ -140,18 +140,24 @@ namespace GithubModUpdateCheckerConsole.Utils
             }
 
             string githubUrl = "p";
-            bool finish = false;
-            while (!finish)
+            bool inputUrlFinish = false;
+            while (!inputUrlFinish)
             {
-                Console.WriteLine("GithubのリポジトリのUrlを入力してください(検索したい場合は\"s\"を入力してください)");
+                Console.WriteLine("GithubのリポジトリのUrlを入力してください(Google検索したい場合は\"s\"を入力してください)");
                 githubUrl = Console.ReadLine();
                 if (githubUrl == "s")
                 {
-                    OpenUrl(githubUrl);
+                    string searchUrl = $"https://www.google.com/search?q={fileAndVersion.Key}";
+                    ProcessStartInfo pi = new ProcessStartInfo()
+                    {
+                        FileName = searchUrl,
+                        UseShellExecute = true,
+                    };
+                    Process.Start(pi);
                 }
                 else
                 {
-                    finish = true;
+                    inputUrlFinish = true;
                 }
             }
 
@@ -285,17 +291,6 @@ namespace GithubModUpdateCheckerConsole.Utils
                     }
                 }
             }
-        }
-
-        private Process OpenUrl(string url)
-        {
-            ProcessStartInfo pi = new ProcessStartInfo()
-            {
-                FileName = url,
-                UseShellExecute = true,
-            };
-
-            return Process.Start(pi);
         }
     }
 }

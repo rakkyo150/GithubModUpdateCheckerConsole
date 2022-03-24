@@ -104,7 +104,6 @@ namespace GithubModUpdateCheckerConsole
                     position++;
                 }
                 latestVersion = new Version(latestVersionRaw.Substring(position));
-                Console.WriteLine(latestVersion.ToString());
             }
             catch (Exception ex)
             {
