@@ -27,7 +27,7 @@ Console.WriteLine("バックアップを作成します");
 mainManager.Backup();
 
 mainManager.CleanModsTemp(downloadModsTemp);
-Console.WriteLine("モードを選んでください : [1] アップデートチェック [2] csvからインポート");
+Console.WriteLine("モードを選んでください : [1] アップデートチェック [2] csvからダウンロード");
 string? mode = Console.ReadLine();
 
 if (mode == "2")

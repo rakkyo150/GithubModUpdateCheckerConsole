@@ -143,7 +143,8 @@ namespace GithubModUpdateCheckerConsole.Utils
             bool inputUrlFinish = false;
             while (!inputUrlFinish)
             {
-                Console.WriteLine("GithubのリポジトリのUrlを入力してください(Google検索したい場合は\"s\"を入力してください)");
+                Console.WriteLine("GithubのリポジトリのURLを入力してください");
+                Console.WriteLine("Google検索したい場合は\"s\"を、URLが無いような場合は\"p\"を入力してください");
                 githubUrl = Console.ReadLine();
                 if (githubUrl == "s")
                 {
