@@ -31,15 +31,15 @@ namespace GithubModUpdateCheckerConsole.Utils
             return filesInfo;
         }
 
-        public bool DetectMAModAndRemoveFromManagement(ModAssistantModInformation item, KeyValuePair<string, Version> fileAndVersion, ref List<ModAssistantModInformationCsv> detectedModAssistantModCsvList, out bool loopBreak)
+        public bool DetectMAModAndRemoveFromManagementForInitialize(ModAssistantModInformation item, KeyValuePair<string, Version> fileAndVersion, ref List<ModAssistantModInformationCsv> detectedModAssistantModCsvList, out bool loopBreaklocalFileSearchLoopBreak )
         {
-            loopBreak= false;
-            bool pass = false;
+            loopBreaklocalFileSearchLoopBreak = false;
+            bool passInputGithubModInformation= false;
 
 
             if (item.name == fileAndVersion.Key)
             {
-                loopBreak = true;
+                loopBreaklocalFileSearchLoopBreak  = true;
 
                 Version modAssistantModVersion = new Version(item.version);
                 if (modAssistantModVersion >= fileAndVersion.Value)
@@ -66,11 +66,59 @@ namespace GithubModUpdateCheckerConsole.Utils
                     };
                     detectedModAssistantModCsvList.Add(modAssistantCsvInstance);
 
-                    pass = true;
+                    passInputGithubModInformation = true;
                 }
             }
 
-            return pass;
+            return passInputGithubModInformation;
+        }
+
+        public void DetectAddedMAModForUpdate(ModAssistantModInformation item, ref Dictionary<string, Tuple<bool, string>> githubModAndOriginalBoolAndUrl, ref List<GithubModInformationCsv> githubModInformationCsv)
+        {
+            if (githubModAndOriginalBoolAndUrl.ContainsKey(item.name))
+            {
+                if (githubModAndOriginalBoolAndUrl[item.name].Item1)
+                {
+                    Console.WriteLine(item.name + "はオリジナルModとして登録されており、かつModAssistantにあります");
+                    Console.WriteLine($"よって、{ item.name} + を管理から外します");
+
+                    githubModAndOriginalBoolAndUrl.Remove(item.name);
+                    githubModInformationCsv.Remove(githubModInformationCsv.Find(n => n.GithubMod == item.name));
+                }
+            }
+        }
+
+        public bool DetectMAModAndRemoveFromManagementForUpdate(ModAssistantModInformation item, KeyValuePair<string, Version> fileAndVersion)
+        {
+            bool passInputGithubModInformation = false;
+
+
+            if (item.name == fileAndVersion.Key)
+            {
+                Version modAssistantModVersion = new Version(item.version);
+                if (modAssistantModVersion >= fileAndVersion.Value)
+                {
+                    Console.WriteLine(item.name + "はModAssistantにあります");
+                }
+                else
+                {
+                    Console.WriteLine(item.name + "はModAssistantにありますが、ローカルにあるのは改造版の可能性が高いです");
+                }
+
+                Console.WriteLine(item.name + "をModAssistantで管理しますか？ [y/n]");
+                string? manageInModAssistant = Console.ReadLine();
+
+                if (manageInModAssistant == "y")
+                {
+                    passInputGithubModInformation = true;
+                }
+                else
+                {
+                    passInputGithubModInformation= false;
+                }
+            }
+
+            return passInputGithubModInformation;
         }
 
         public void InputGithubModInformation(IGithubManager githubManager, KeyValuePair<string, Version> fileAndVersion, ref List<GithubModInformationCsv> githubModInformationCsv)
@@ -91,7 +139,7 @@ namespace GithubModUpdateCheckerConsole.Utils
                 originalMod = false;
             }
 
-            string githubUrl="p";
+            string githubUrl = "p";
             bool finish = false;
             while (!finish)
             {
@@ -122,21 +170,6 @@ namespace GithubModUpdateCheckerConsole.Utils
                 GithubUrl = githubUrl,
             };
             githubModInformationCsv.Add(githubModInstance);
-        }
-
-        public void DetectMAModForUpdate(ModAssistantModInformation item, ref Dictionary<string, Tuple<bool, string>> githubModAndOriginalBoolAndUrl, ref List<GithubModInformationCsv> githubModInformationCsv)
-        {
-            if (githubModAndOriginalBoolAndUrl.ContainsKey(item.name))
-            {
-                if (githubModAndOriginalBoolAndUrl[item.name].Item1)
-                {
-                    Console.WriteLine(item.name + "はオリジナルModとして登録されており、かつModAssistantにあります");
-                    Console.WriteLine($"よって、{ item.name} + を管理から外します");
-
-                    githubModAndOriginalBoolAndUrl.Remove(item.name);
-                    githubModInformationCsv.Remove(githubModInformationCsv.Find(n => n.GithubMod == item.name));
-                }
-            }
         }
 
         public void ManageLocalPluginsDiff(Dictionary<string, Version> localFilesInfoDictionary, ModAssistantModInformation[] modAssistantAllMods, IGithubManager githubManager,

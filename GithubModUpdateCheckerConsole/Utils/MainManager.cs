@@ -68,8 +68,8 @@ namespace GithubModUpdateCheckerConsole
             {
                 foreach (var item in modAssistantAllMods)
                 {
-                    passInputGithubModInformation = dataManager.DetectMAModAndRemoveFromManagement(item, fileAndVersion, ref detectedModAssistantModCsvList, out bool loopBreak);
-                    if (loopBreak)
+                    passInputGithubModInformation = dataManager.DetectMAModAndRemoveFromManagementForInitialize(item, fileAndVersion, ref detectedModAssistantModCsvList, out bool localFileSearchLoopBreak);
+                    if (localFileSearchLoopBreak)
                     {
                         break;
                     }
@@ -126,10 +126,24 @@ namespace GithubModUpdateCheckerConsole
 
                 Console.WriteLine("前回実行時との差分を取得");
 
-                // MAの更新を反映
+                // MAの更新を反映,ローカル増加分でMAにあるModの処理
                 foreach (var item in modAssistantAllMods)
                 {
-                    dataManager.DetectMAModForUpdate(item, ref githubModAndOriginalBoolAndUrl, ref githubModInformationCsv);
+                    dataManager.DetectAddedMAModForUpdate(item, ref githubModAndOriginalBoolAndUrl, ref githubModInformationCsv);
+                    if (!githubModAndOriginalBoolAndUrl.ContainsKey(item.name) && localFilesInfoDictionary.ContainsKey(item.name))
+                    {
+                        KeyValuePair<string,Version> fileAndVersion=new KeyValuePair<string,Version>(item.name,localFilesInfoDictionary[item.name]);
+
+                        passInputGithubModInformation=dataManager.DetectMAModAndRemoveFromManagementForUpdate(item, fileAndVersion);
+
+                        if (!passInputGithubModInformation)
+                        {
+                            dataManager.InputGithubModInformation(githubManager, fileAndVersion, ref githubModInformationCsv);
+                            GithubModInformationCsv newGithubModNotManageInMA = githubModInformationCsv[githubModInformationCsv.Count - 1];
+                            Tuple<bool, string> tempGithubModInformation = new Tuple<bool, string>(newGithubModNotManageInMA.OriginalMod, newGithubModNotManageInMA.GithubUrl);
+                            githubModAndOriginalBoolAndUrl[newGithubModNotManageInMA.GithubMod] = tempGithubModInformation;
+                        }
+                    }
                 }
                 // ローカルの差分を反映
                 dataManager.ManageLocalPluginsDiff(localFilesInfoDictionary, modAssistantAllMods, githubManager,
