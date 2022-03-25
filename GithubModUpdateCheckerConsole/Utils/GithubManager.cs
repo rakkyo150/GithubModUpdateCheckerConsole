@@ -1,6 +1,7 @@
 ﻿using GithubModUpdateCheckerConsole.Interfaces;
 using Octokit;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
@@ -35,6 +36,10 @@ namespace GithubModUpdateCheckerConsole
 
             var response = github.Repository.Release.GetLatest(owner, name);
 
+            string releaseBody = response.Result.Body;
+            var releaseCreatedAt=response.Result.CreatedAt;
+            DateTimeOffset now=DateTimeOffset.UtcNow;
+            
             string latestVersionRaw = response.Result.TagName;
 
             int position = 0;
@@ -50,17 +55,51 @@ namespace GithubModUpdateCheckerConsole
             
             if (latestVersion > currentVersion)
             {
+                Console.WriteLine("**************************");
                 Console.WriteLine($"{owner}/{name}の最新バージョン:{latestVersion}が見つかりました");
-                Console.WriteLine("ダウンロードしますか？ [y/n]");
-                string download = Console.ReadLine();
-
-                if (download == "y")
+                if ((now - releaseCreatedAt).Days >= 1)
                 {
-                    foreach (var item in response.Result.Assets)
+                    Console.WriteLine((now - releaseCreatedAt).Days + "日前にリリース");
+                }
+                else
+                {
+                    Console.WriteLine((now - releaseCreatedAt).Hours + "時間" + (now - releaseCreatedAt).Minutes + "分前にリリース");
+                }
+                Console.WriteLine("リリースの説明 : "+releaseBody);
+
+                bool downloadChoiceFinish = false;
+                while (!downloadChoiceFinish)
+                {
+                    Console.WriteLine("ダウンロードしますか？ [y/n]");
+                    Console.WriteLine("リポジトリを確認したい場合は\"r\"を入力してください");
+                    string download = Console.ReadLine();
+                    if (download == "r")
                     {
-                        Console.WriteLine("ダウンロード中");
-                        await DownloadModHelperAsync(item.BrowserDownloadUrl, item.Name, destDirFullPath);
-                        Console.WriteLine("ダウンロード成功！");
+                        string searchUrl = url;
+                        ProcessStartInfo pi = new ProcessStartInfo()
+                        {
+                            FileName = searchUrl,
+                            UseShellExecute = true,
+                        };
+                        Process.Start(pi);
+
+                        downloadChoiceFinish = false;
+                    }
+                    else if (download == "y")
+                    {
+                        foreach (var item in response.Result.Assets)
+                        {
+                            Console.WriteLine("ダウンロード中");
+                            await DownloadModHelperAsync(item.BrowserDownloadUrl, item.Name, destDirFullPath);
+                            Console.WriteLine("ダウンロード成功！");
+                        }
+
+                        downloadChoiceFinish = true;
+                    }
+                    else
+                    {
+                        Console.WriteLine("ダウンロードしません");
+                        downloadChoiceFinish = true;
                     }
                 }
             }
