@@ -340,6 +340,7 @@ namespace GithubModUpdateCheckerConsole
             File.Copy(configFile, Path.Combine(zipPath, "config.json"), true);
 
             ZipFile.CreateFromDirectory(zipPath, Path.Combine(backupFodlerPath, $"BS{gameVersion}-{now}.zip"));
+            Directory.Delete(zipPath, true);
         }
 
         public void CleanModsTemp(string path)
