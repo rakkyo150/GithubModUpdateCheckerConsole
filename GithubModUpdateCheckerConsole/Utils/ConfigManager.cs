@@ -26,6 +26,7 @@ namespace GithubModUpdateCheckerConsole.Utils
             if (_jsonDyn != null)
             {
                 Settings.Instance.BeatSaberExeFolderPath = _jsonDyn.BeatSaberExeFolderPath;
+                Settings.Instance.OAuthToken = _jsonDyn.OAuthToken;
             }
         }
 
