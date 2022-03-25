@@ -38,7 +38,8 @@ namespace GithubModUpdateCheckerConsole
 
         private ModAssistantModInformation[] modAssistantAllMods;
 
-        private List<GithubModInformationCsv> githubModInformationCsv = new List<GithubModInformationCsv>();
+        private List<GithubModInformationCsv> initializeGithubModInformationCsv = new List<GithubModInformationCsv>();
+        private List<GithubModInformationCsv> secondGithubModInformationCsv = new List<GithubModInformationCsv>();
         private List<MAModInformationCsv> detectedModAssistantModCsvList = new List<MAModInformationCsv>();
         private List<MAModInformationCsv> updateModAssistantModCsvList = new List<MAModInformationCsv>();
 
@@ -82,7 +83,7 @@ namespace GithubModUpdateCheckerConsole
 
                 if (!passInputGithubModInformation)
                 {
-                    dataManager.InputGithubModInformation(githubManager, fileAndVersion, ref githubModInformationCsv);
+                    dataManager.InputGithubModInformation(githubManager, fileAndVersion, ref initializeGithubModInformationCsv);
                 }
             }
 
@@ -100,7 +101,7 @@ namespace GithubModUpdateCheckerConsole
 
             using var writer1 = new StreamWriter(githubModCsvPath, false);
             using var csv1 = new CsvWriter(writer1, new CultureInfo("ja-JP", false));
-            csv1.WriteRecords(githubModInformationCsv);
+            csv1.WriteRecords(initializeGithubModInformationCsv);
         }
 
         public async Task UpdateGithubModForUsualBSVersionAsync()
@@ -111,6 +112,8 @@ namespace GithubModUpdateCheckerConsole
                 Console.WriteLine("イニシャライズします");
                 await Initialize();
             }
+
+            
 
             // Console.WriteLine("Start GetAllModAssistantMods");
             modAssistantAllMods = await modAssistantManager.GetAllModAssistantMods();
@@ -127,7 +130,7 @@ namespace GithubModUpdateCheckerConsole
 
                 foreach (var githubModInformation in githubModInformationEnum)
                 {
-                    githubModInformationCsv.Add(githubModInformation);
+                    secondGithubModInformationCsv.Add(githubModInformation);
                     Tuple<bool, string> originalBoolAndUrl = new Tuple<bool, string>(githubModInformation.OriginalMod, githubModInformation.GithubUrl);
                     installedGithubModAndOriginalBoolAndUrl.Add(githubModInformation.GithubMod, originalBoolAndUrl);
                 }
@@ -143,7 +146,7 @@ namespace GithubModUpdateCheckerConsole
 
             // ローカルの差分を反映
             dataManager.ManageLocalPluginsDiff(nowLocalFilesInfoDictionary, modAssistantAllMods, githubManager,
-                ref installedGithubModAndOriginalBoolAndUrl, ref githubModInformationCsv);
+                ref installedGithubModAndOriginalBoolAndUrl, ref secondGithubModInformationCsv);
 
             // MAの更新を反映,ローカル増加分でMAにあるModの処理
             foreach (var item in modAssistantAllMods)
@@ -156,13 +159,13 @@ namespace GithubModUpdateCheckerConsole
 
                     if (!passInputGithubModInformation)
                     {
-                        dataManager.InputGithubModInformation(githubManager, fileAndVersion, ref githubModInformationCsv);
-                        GithubModInformationCsv newGithubModNotManageInMA = githubModInformationCsv[githubModInformationCsv.Count - 1];
+                        dataManager.InputGithubModInformation(githubManager, fileAndVersion, ref secondGithubModInformationCsv);
+                        GithubModInformationCsv newGithubModNotManageInMA = secondGithubModInformationCsv[secondGithubModInformationCsv.Count - 1];
                         Tuple<bool, string> tempGithubModInformation = new Tuple<bool, string>(newGithubModNotManageInMA.OriginalMod, newGithubModNotManageInMA.GithubUrl);
                         installedGithubModAndOriginalBoolAndUrl[newGithubModNotManageInMA.GithubMod] = tempGithubModInformation;
                     }
                 }
-                dataManager.DetectAddedMAModForUpdate(item, ref installedGithubModAndOriginalBoolAndUrl, ref githubModInformationCsv);
+                dataManager.DetectAddedMAModForUpdate(item, ref installedGithubModAndOriginalBoolAndUrl, ref secondGithubModInformationCsv);
             }
 
             foreach (var fileNameAndOriginalBoolAndUrl in installedGithubModAndOriginalBoolAndUrl)
@@ -182,7 +185,7 @@ namespace GithubModUpdateCheckerConsole
 
             using var writer1 = new StreamWriter(githubModCsvPath, false);
             using var csv1 = new CsvWriter(writer1, new CultureInfo("ja-JP", false));
-            csv1.WriteRecords(githubModInformationCsv);
+            csv1.WriteRecords(secondGithubModInformationCsv);
 
             UpdateModAssistantModCsv();
         }
@@ -249,7 +252,7 @@ namespace GithubModUpdateCheckerConsole
 
                 foreach (var githubModInformation in githubModInformationEnum)
                 {
-                    githubModInformationCsv.Add(githubModInformation);
+                    secondGithubModInformationCsv.Add(githubModInformation);
                     Tuple<bool, string> originalBoolAndUrl = new Tuple<bool, string>(githubModInformation.OriginalMod, githubModInformation.GithubUrl);
                     installedGithubModAndOriginalBoolAndUrl.Add(githubModInformation.GithubMod, originalBoolAndUrl);
                 }
