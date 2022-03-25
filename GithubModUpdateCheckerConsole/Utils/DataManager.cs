@@ -125,8 +125,6 @@ namespace GithubModUpdateCheckerConsole.Utils
         {
             Console.WriteLine($"{fileAndVersion.Key} : {fileAndVersion.Value}");
 
-            // プリセット機能が欲しい
-
             Console.WriteLine("オリジナルModですか？ [y/n]");
             var ok = Console.ReadLine();
             bool originalMod;
@@ -140,6 +138,7 @@ namespace GithubModUpdateCheckerConsole.Utils
             }
 
             string githubUrl = "p";
+            string githubModVersion="0.0.0";
             bool inputUrlFinish = false;
             while (!inputUrlFinish)
             {
@@ -148,23 +147,43 @@ namespace GithubModUpdateCheckerConsole.Utils
                 githubUrl = Console.ReadLine();
                 if (githubUrl == "s")
                 {
-                    string searchUrl = $"https://www.google.com/search?q={fileAndVersion.Key}";
-                    ProcessStartInfo pi = new ProcessStartInfo()
+                    try
                     {
-                        FileName = searchUrl,
-                        UseShellExecute = true,
-                    };
-                    Process.Start(pi);
+                        string searchUrl = $"https://www.google.com/search?q={fileAndVersion.Key}";
+                        ProcessStartInfo pi = new ProcessStartInfo()
+                        {
+                            FileName = searchUrl,
+                            UseShellExecute = true,
+                        };
+                        Process.Start(pi);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                        Console.WriteLine("Google検索できませんでした");
+                    }
                 }
                 else
                 {
-                    inputUrlFinish = true;
+                    Console.WriteLine("Githubの最新のリリースのタグ情報を取得します");
+
+                    githubModVersion = githubManager.GetGithubModLatestVersion(githubUrl).Result.ToString();
+                    if (githubModVersion == new Version("0.0.0").ToString())
+                    {
+                        Console.WriteLine("リリース情報が取得できませんでした");
+                        Console.WriteLine("URLを修正しますか？ [y/n]");
+                        var a=Console.ReadLine();
+                        if (a != "y")
+                        {
+                            inputUrlFinish = true;
+                        }
+                    }
+                    else
+                    {
+                        inputUrlFinish = true;
+                    }
                 }
             }
-
-            Console.WriteLine("Githubの最新のリリースのタグ情報を取得します");
-
-            string githubModVersion = githubManager.GetGithubModLatestVersion(githubUrl).Result.ToString();
 
             Console.WriteLine("GithubModData.csvに追加します");
 

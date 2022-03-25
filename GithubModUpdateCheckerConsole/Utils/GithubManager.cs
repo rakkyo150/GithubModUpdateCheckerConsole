@@ -36,72 +36,93 @@ namespace GithubModUpdateCheckerConsole
 
             var response = github.Repository.Release.GetLatest(owner, name);
 
-            string releaseBody = response.Result.Body;
-            var releaseCreatedAt=response.Result.CreatedAt;
-            DateTimeOffset now=DateTimeOffset.UtcNow;
-            
-            string latestVersionRaw = response.Result.TagName;
-
-            int position = 0;
-            foreach (char item in latestVersionRaw)
+            try
             {
-                if (item >= '0' && item <= '9')
-                {
-                    break;
-                }
-                position++;
-            }
-            Version latestVersion = new Version(latestVersionRaw.Substring(position));
-            
-            if (latestVersion > currentVersion)
-            {
-                Console.WriteLine("**************************");
-                Console.WriteLine($"{owner}/{name}の最新バージョン:{latestVersion}が見つかりました");
-                if ((now - releaseCreatedAt).Days >= 1)
-                {
-                    Console.WriteLine((now - releaseCreatedAt).Days + "日前にリリース");
-                }
-                else
-                {
-                    Console.WriteLine((now - releaseCreatedAt).Hours + "時間" + (now - releaseCreatedAt).Minutes + "分前にリリース");
-                }
-                Console.WriteLine("リリースの説明 : "+releaseBody);
+                string releaseBody = response.Result.Body;
+                var releaseCreatedAt = response.Result.CreatedAt;
+                DateTimeOffset now = DateTimeOffset.UtcNow;
 
-                bool downloadChoiceFinish = false;
-                while (!downloadChoiceFinish)
+                string latestVersionRaw = response.Result.TagName;
+
+                int position = 0;
+                foreach (char item in latestVersionRaw)
                 {
-                    Console.WriteLine("ダウンロードしますか？ [y/n]");
-                    Console.WriteLine("リポジトリを確認したい場合は\"r\"を入力してください");
-                    string download = Console.ReadLine();
-                    if (download == "r")
+                    if (item >= '0' && item <= '9')
                     {
-                        string searchUrl = url;
-                        ProcessStartInfo pi = new ProcessStartInfo()
-                        {
-                            FileName = searchUrl,
-                            UseShellExecute = true,
-                        };
-                        Process.Start(pi);
-
-                        downloadChoiceFinish = false;
+                        break;
                     }
-                    else if (download == "y")
-                    {
-                        foreach (var item in response.Result.Assets)
-                        {
-                            Console.WriteLine("ダウンロード中");
-                            await DownloadModHelperAsync(item.BrowserDownloadUrl, item.Name, destDirFullPath);
-                            Console.WriteLine("ダウンロード成功！");
-                        }
+                    position++;
+                }
+                Version latestVersion = new Version(latestVersionRaw.Substring(position));
 
-                        downloadChoiceFinish = true;
+                if (latestVersion > currentVersion)
+                {
+                    Console.WriteLine("****************************************************");
+                    Console.WriteLine($"{owner}/{name}の最新バージョン:{latestVersion}が見つかりました");
+                    
+                    Console.WriteLine("----------------------------------------------------");
+                    if ((now - releaseCreatedAt).Days >= 1)
+                    {
+                        Console.WriteLine((now - releaseCreatedAt).Days + "日前にリリース");
                     }
                     else
                     {
-                        Console.WriteLine("ダウンロードしません");
-                        downloadChoiceFinish = true;
+                        Console.WriteLine((now - releaseCreatedAt).Hours + "時間" + (now - releaseCreatedAt).Minutes + "分前にリリース");
+                    }
+                    Console.WriteLine("リリースの説明");
+                    Console.WriteLine(releaseBody);
+                    Console.WriteLine("----------------------------------------------------");
+
+                    bool downloadChoiceFinish = false;
+                    while (!downloadChoiceFinish)
+                    {
+                        Console.WriteLine("ダウンロードしますか？ [y/n]");
+                        Console.WriteLine("リポジトリを確認したい場合は\"r\"を入力してください");
+                        string download = Console.ReadLine();
+                        if (download == "r")
+                        {
+                            try
+                            {
+                                string searchUrl = url;
+                                ProcessStartInfo pi = new ProcessStartInfo()
+                                {
+                                    FileName = searchUrl,
+                                    UseShellExecute = true,
+                                };
+                                Process.Start(pi);
+
+                                downloadChoiceFinish = false;
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine(ex.Message);
+                                Console.WriteLine("リポジトリが開けませんでした");
+                            }
+                        }
+                        else if (download == "y")
+                        {
+                            foreach (var item in response.Result.Assets)
+                            {
+                                Console.WriteLine("ダウンロード中");
+                                await DownloadModHelperAsync(item.BrowserDownloadUrl, item.Name, destDirFullPath);
+                                Console.WriteLine("ダウンロード成功！");
+                            }
+
+                            downloadChoiceFinish = true;
+                        }
+                        else
+                        {
+                            Console.WriteLine("ダウンロードしません");
+                            downloadChoiceFinish = true;
+                        }
                     }
                 }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                Console.WriteLine("リリースが見つかりませんでした");
+                Console.WriteLine($"対象のリポジトリのURL : {url}");
             }
         }
 
@@ -118,7 +139,7 @@ namespace GithubModUpdateCheckerConsole
 
             if(nextSlashPosition == -1)
             {
-                Console.WriteLine("URLにミスがあります");
+                Console.WriteLine("URLにミスがあるかもしれません");
                 Console.WriteLine($"対象のURL : {url}");
                 return new Version("0.0.0");
             }
@@ -146,7 +167,6 @@ namespace GithubModUpdateCheckerConsole
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
                 Console.WriteLine("URLにミスがあるかもしれません");
                 Console.WriteLine($"対象のURL : {url}");
                 return new Version("0.0.0");

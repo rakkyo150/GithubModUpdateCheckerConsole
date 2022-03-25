@@ -5,12 +5,13 @@ namespace GithubModUpdateCheckerConsole.Interfaces
     internal interface IMainManager
     {
         Task Initialize();
-        Task UpdateGithubModAsync();
+
+        Task UpdateGithubModForUsualBSVersionAsync();
         void UpdateModAssistantModCsv();
+        Task UpdateGithubModForNewBSVersionAsync();
         Task ImportCsv();
-
+        
         void Backup();
-
         void CleanModsTemp(string downloadModsTemp);
     }
 }

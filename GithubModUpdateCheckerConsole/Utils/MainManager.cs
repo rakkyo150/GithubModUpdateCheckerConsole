@@ -19,17 +19,19 @@ namespace GithubModUpdateCheckerConsole
         IConfigManager configManager;
 
         private string gameVersion = "1.11.0";
+        private string oldBSVersion;
         private bool passInputGithubModInformation = false;
 
         private string configFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
         private string importCsv = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ImportGithubCsv");
-        private string pluginsPath = Path.Combine(Settings.Instance.BeatSaberExeFolderPath, "Plugins");
+        private string nowPluginsPath = Path.Combine(Settings.Instance.BeatSaberExeFolderPath, "Plugins");
         private string downloadModsTemp = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ModsTemp");
         private string githubModCsvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "GithubModData.csv");
         private string mAModCsvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "ModAssistantModData.csv");
         private string backupFodlerPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Backup");
         
-        Dictionary<string, Version> localFilesInfoDictionary;
+        Dictionary<string, Version> nowLocalFilesInfoDictionary;
+        Dictionary<string, Version> oldLocalFilesInfoDictionary;
 
         private Dictionary<string, Tuple<bool, string>> installedGithubModAndOriginalBoolAndUrl = new Dictionary<string, Tuple<bool, string>>();
         private List<string> installedMAMod=new List<string>();
@@ -63,10 +65,12 @@ namespace GithubModUpdateCheckerConsole
             // Console.WriteLine("Start GetAllModAssistantMods");
             modAssistantAllMods = await modAssistantManager.GetAllModAssistantMods();
 
-            localFilesInfoDictionary = dataManager.GetLocalModFilesInfo(pluginsPath);
+            nowLocalFilesInfoDictionary = dataManager.GetLocalModFilesInfo(nowPluginsPath);
 
-            foreach (KeyValuePair<string, Version> fileAndVersion in localFilesInfoDictionary)
+            foreach (KeyValuePair<string, Version> fileAndVersion in nowLocalFilesInfoDictionary)
             {
+                Console.WriteLine("****************************************************");
+
                 foreach (var item in modAssistantAllMods)
                 {
                     passInputGithubModInformation = dataManager.DetectMAModAndRemoveFromManagementForInitialize(item, fileAndVersion, ref detectedModAssistantModCsvList, out bool localFileSearchLoopBreak);
@@ -99,7 +103,7 @@ namespace GithubModUpdateCheckerConsole
             csv1.WriteRecords(githubModInformationCsv);
         }
 
-        public async Task UpdateGithubModAsync()
+        public async Task UpdateGithubModForUsualBSVersionAsync()
         {
             if (!File.Exists(githubModCsvPath))
             {
@@ -131,7 +135,7 @@ namespace GithubModUpdateCheckerConsole
                     installedMAMod.Add(mAModInformation.ModAssistantMod);
                 }
 
-                localFilesInfoDictionary = dataManager.GetLocalModFilesInfo(pluginsPath);
+                nowLocalFilesInfoDictionary = dataManager.GetLocalModFilesInfo(nowPluginsPath);
 
                 Console.WriteLine("前回実行時との差分を取得");
 
@@ -139,9 +143,9 @@ namespace GithubModUpdateCheckerConsole
                 foreach (var item in modAssistantAllMods)
                 {
                     dataManager.DetectAddedMAModForUpdate(item, ref installedGithubModAndOriginalBoolAndUrl, ref githubModInformationCsv);
-                    if (!installedGithubModAndOriginalBoolAndUrl.ContainsKey(item.name) && localFilesInfoDictionary.ContainsKey(item.name))
+                    if (!installedGithubModAndOriginalBoolAndUrl.ContainsKey(item.name) && nowLocalFilesInfoDictionary.ContainsKey(item.name))
                     {
-                        KeyValuePair<string,Version> fileAndVersion=new KeyValuePair<string,Version>(item.name,localFilesInfoDictionary[item.name]);
+                        KeyValuePair<string,Version> fileAndVersion=new KeyValuePair<string,Version>(item.name,nowLocalFilesInfoDictionary[item.name]);
 
                         passInputGithubModInformation=dataManager.DetectMAModAndRemoveFromManagementForUpdate(item, fileAndVersion,installedMAMod);
 
@@ -155,19 +159,19 @@ namespace GithubModUpdateCheckerConsole
                     }
                 }
                 // ローカルの差分を反映
-                dataManager.ManageLocalPluginsDiff(localFilesInfoDictionary, modAssistantAllMods, githubManager,
+                dataManager.ManageLocalPluginsDiff(nowLocalFilesInfoDictionary, modAssistantAllMods, githubManager,
                     ref installedGithubModAndOriginalBoolAndUrl, ref githubModInformationCsv);
             }
-            foreach (var fileNameAndOriginalBoolAndVersion in installedGithubModAndOriginalBoolAndUrl)
+            foreach (var fileNameAndOriginalBoolAndUrl in installedGithubModAndOriginalBoolAndUrl)
             {
-                string pluginPath = Path.Combine(pluginsPath, fileNameAndOriginalBoolAndVersion.Key);
+                string pluginPath = Path.Combine(nowPluginsPath, fileNameAndOriginalBoolAndUrl.Key);
 
-                var latestVersion = githubManager.GetGithubModLatestVersion(fileNameAndOriginalBoolAndVersion.Value.Item2).Result;
+                var latestVersion = githubManager.GetGithubModLatestVersion(fileNameAndOriginalBoolAndUrl.Value.Item2).Result;
 
-                if (latestVersion > localFilesInfoDictionary[fileNameAndOriginalBoolAndVersion.Key])
+                if (latestVersion > nowLocalFilesInfoDictionary[fileNameAndOriginalBoolAndUrl.Key])
                 {
-                    await githubManager.DownloadGithubModAsync(installedGithubModAndOriginalBoolAndUrl[fileNameAndOriginalBoolAndVersion.Key].Item2,
-                        localFilesInfoDictionary[fileNameAndOriginalBoolAndVersion.Key],downloadModsTemp);
+                    await githubManager.DownloadGithubModAsync(installedGithubModAndOriginalBoolAndUrl[fileNameAndOriginalBoolAndUrl.Key].Item2,
+                        nowLocalFilesInfoDictionary[fileNameAndOriginalBoolAndUrl.Key],downloadModsTemp);
                 }
             }
 
@@ -186,12 +190,12 @@ namespace GithubModUpdateCheckerConsole
             {
                 foreach (var a in modAssistantAllMods)
                 {
-                    if (!installedGithubModAndOriginalBoolAndUrl.ContainsKey(a.name) && localFilesInfoDictionary.ContainsKey(a.name))
+                    if (!installedGithubModAndOriginalBoolAndUrl.ContainsKey(a.name) && nowLocalFilesInfoDictionary.ContainsKey(a.name))
                     {
                         MAModInformationCsv modAssistantCsvInstance = new MAModInformationCsv()
                         {
                             ModAssistantMod = a.name,
-                            LocalVersion = localFilesInfoDictionary[a.name].ToString(),
+                            LocalVersion = nowLocalFilesInfoDictionary[a.name].ToString(),
                             ModAssistantVersion = a.version,
                         };
 
@@ -204,6 +208,80 @@ namespace GithubModUpdateCheckerConsole
                 csv2.WriteRecords(updateModAssistantModCsvList);
             }
         }
+
+        public async Task UpdateGithubModForNewBSVersionAsync()
+        {
+            bool existOldPluginsFolder = false;
+            string oldPluginsPath = "";
+
+            if (!File.Exists(githubModCsvPath))
+            {
+                Console.WriteLine($"{githubModCsvPath}がありません");
+                Console.WriteLine("イニシャライズします");
+                await Initialize();
+            }
+            else
+            {
+                while (!existOldPluginsFolder)
+                {
+                    Console.WriteLine("参照するOld PluginsフォルダのBeat Saberのバージョンを入力してください");
+                    Console.WriteLine("例 : Old 1.19.0 Pluginsなら\"1.19.0\"と入力してください");
+                    oldBSVersion = Console.ReadLine();
+                    oldPluginsPath = Path.Combine(Settings.Instance.BeatSaberExeFolderPath, $"Old {oldBSVersion} Plugins");
+
+                    if (Directory.Exists(oldPluginsPath))
+                    {
+                        existOldPluginsFolder = true;
+                    }
+                    else
+                    {
+                        Console.WriteLine(oldPluginsPath + "は存在しません");
+                        Console.WriteLine("もう一度入力をお願いします");
+                    }
+                }
+
+                using var reader = new StreamReader(githubModCsvPath);
+                using var csv = new CsvReader(reader, new CultureInfo("ja-JP", false));
+                IEnumerable<GithubModInformationCsv> githubModInformationEnum = csv.GetRecords<GithubModInformationCsv>();
+
+                foreach (var githubModInformation in githubModInformationEnum)
+                {
+                    githubModInformationCsv.Add(githubModInformation);
+                    Tuple<bool, string> originalBoolAndUrl = new Tuple<bool, string>(githubModInformation.OriginalMod, githubModInformation.GithubUrl);
+                    installedGithubModAndOriginalBoolAndUrl.Add(githubModInformation.GithubMod, originalBoolAndUrl);
+                }
+
+                nowLocalFilesInfoDictionary = dataManager.GetLocalModFilesInfo(nowPluginsPath);
+                oldLocalFilesInfoDictionary = dataManager.GetLocalModFilesInfo(oldPluginsPath);
+
+                foreach (var fileNameAndOriginalBoolAndUrl in installedGithubModAndOriginalBoolAndUrl)
+                {
+                    string fileName = fileNameAndOriginalBoolAndUrl.Key;
+
+                    if (!nowLocalFilesInfoDictionary.ContainsKey(fileName) && oldLocalFilesInfoDictionary.ContainsKey(fileName))
+                    {
+                        await githubManager.DownloadGithubModAsync(installedGithubModAndOriginalBoolAndUrl[fileNameAndOriginalBoolAndUrl.Key].Item2,
+                            oldLocalFilesInfoDictionary[fileNameAndOriginalBoolAndUrl.Key], downloadModsTemp);
+                    }
+                    if (nowLocalFilesInfoDictionary.ContainsKey(fileName) && oldLocalFilesInfoDictionary.ContainsKey(fileName))
+                    {
+                        string pluginPath = Path.Combine(oldPluginsPath, fileNameAndOriginalBoolAndUrl.Key);
+
+                        var latestVersion = githubManager.GetGithubModLatestVersion(fileNameAndOriginalBoolAndUrl.Value.Item2).Result;
+
+                        if (latestVersion > nowLocalFilesInfoDictionary[fileNameAndOriginalBoolAndUrl.Key])
+                        {
+                            await githubManager.DownloadGithubModAsync(installedGithubModAndOriginalBoolAndUrl[fileNameAndOriginalBoolAndUrl.Key].Item2,
+                            nowLocalFilesInfoDictionary[fileNameAndOriginalBoolAndUrl.Key], downloadModsTemp);
+                        }
+                    }
+                }
+
+                await dataManager.OrganizeDownloadFileStructure(downloadModsTemp, Settings.Instance.BeatSaberExeFolderPath);
+
+            }
+        }
+
 
         public async Task ImportCsv()
         {
@@ -254,7 +332,7 @@ namespace GithubModUpdateCheckerConsole
             string zipPath= Path.Combine(backupFodlerPath, $"BS{gameVersion}-{now}");
             Directory.CreateDirectory(zipPath);
 
-            dataManager.DirectoryCopy(pluginsPath, Path.Combine(zipPath,"Plugins"), true);
+            dataManager.DirectoryCopy(nowPluginsPath, Path.Combine(zipPath,"Plugins"), true);
             dataManager.DirectoryCopy(importCsv, Path.Combine(zipPath, "Data"), true);
             File.Copy(configFile, Path.Combine(zipPath, "config.json"), true);
 

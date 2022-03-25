@@ -27,18 +27,26 @@ Console.WriteLine("バックアップを作成します");
 mainManager.Backup();
 
 mainManager.CleanModsTemp(downloadModsTemp);
-Console.WriteLine("モードを選んでください : [1] アップデートチェック [2] csvからダウンロード");
+Console.WriteLine("モードを選んでください");
+Console.WriteLine("[1] 通常アップデートチェック");
+Console.WriteLine("[2] BSアップデート後のアップデートチェック");
+Console.WriteLine("[3] csvからダウンロード");
 string? mode = Console.ReadLine();
 
-if (mode == "2")
+if(mode == "1")
 {
-    Console.WriteLine("Start importing csv");
-    await mainManager.ImportCsv();
+    Console.WriteLine("通常アップデートチェックスタート");
+    await mainManager.UpdateGithubModForUsualBSVersionAsync();
+}
+else if(mode == "2")
+{
+    Console.WriteLine("BSアップデート後のアップデートチェックスタート");
+    await mainManager.UpdateGithubModForNewBSVersionAsync();
 }
 else
 {
-    Console.WriteLine("Start checking update");
-    await mainManager.UpdateGithubModAsync();
+    Console.WriteLine("csvからダウンロードをスタート");
+    await mainManager.ImportCsv();
 }
 
 Console.WriteLine("returnで終了します");
