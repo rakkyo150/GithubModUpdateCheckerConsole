@@ -111,13 +111,14 @@ namespace GithubModUpdateCheckerConsole
                 Console.WriteLine("イニシャライズします");
                 await Initialize();
             }
-            else
-            {
-                // Console.WriteLine("Start GetAllModAssistantMods");
-                modAssistantAllMods = await modAssistantManager.GetAllModAssistantMods();
 
-                using var reader = new StreamReader(githubModCsvPath);
-                using var csv = new CsvReader(reader, new CultureInfo("ja-JP", false));
+            // Console.WriteLine("Start GetAllModAssistantMods");
+            modAssistantAllMods = await modAssistantManager.GetAllModAssistantMods();
+
+            
+            using (var reader = new StreamReader(githubModCsvPath))
+            using (var csv = new CsvReader(reader, new CultureInfo("ja-JP", false)))
+            {
                 IEnumerable<GithubModInformationCsv> githubModInformationEnum = csv.GetRecords<GithubModInformationCsv>();
 
                 using var reader2 = new StreamReader(mAModCsvPath);
@@ -136,32 +137,34 @@ namespace GithubModUpdateCheckerConsole
                 }
 
                 nowLocalFilesInfoDictionary = dataManager.GetLocalModFilesInfo(nowPluginsPath);
+            }
 
-                Console.WriteLine("前回実行時との差分を取得");
+            Console.WriteLine("前回実行時との差分を取得");
 
-                // MAの更新を反映,ローカル増加分でMAにあるModの処理
-                foreach (var item in modAssistantAllMods)
+            // ローカルの差分を反映
+            dataManager.ManageLocalPluginsDiff(nowLocalFilesInfoDictionary, modAssistantAllMods, githubManager,
+                ref installedGithubModAndOriginalBoolAndUrl, ref githubModInformationCsv);
+
+            // MAの更新を反映,ローカル増加分でMAにあるModの処理
+            foreach (var item in modAssistantAllMods)
+            {
+                if (!installedGithubModAndOriginalBoolAndUrl.ContainsKey(item.name) && nowLocalFilesInfoDictionary.ContainsKey(item.name))
                 {
-                    dataManager.DetectAddedMAModForUpdate(item, ref installedGithubModAndOriginalBoolAndUrl, ref githubModInformationCsv);
-                    if (!installedGithubModAndOriginalBoolAndUrl.ContainsKey(item.name) && nowLocalFilesInfoDictionary.ContainsKey(item.name))
+                    KeyValuePair<string,Version> fileAndVersion=new KeyValuePair<string,Version>(item.name,nowLocalFilesInfoDictionary[item.name]);
+
+                    passInputGithubModInformation=dataManager.DetectMAModAndRemoveFromManagementForUpdate(item, fileAndVersion,installedMAMod);
+
+                    if (!passInputGithubModInformation)
                     {
-                        KeyValuePair<string,Version> fileAndVersion=new KeyValuePair<string,Version>(item.name,nowLocalFilesInfoDictionary[item.name]);
-
-                        passInputGithubModInformation=dataManager.DetectMAModAndRemoveFromManagementForUpdate(item, fileAndVersion,installedMAMod);
-
-                        if (!passInputGithubModInformation)
-                        {
-                            dataManager.InputGithubModInformation(githubManager, fileAndVersion, ref githubModInformationCsv);
-                            GithubModInformationCsv newGithubModNotManageInMA = githubModInformationCsv[githubModInformationCsv.Count - 1];
-                            Tuple<bool, string> tempGithubModInformation = new Tuple<bool, string>(newGithubModNotManageInMA.OriginalMod, newGithubModNotManageInMA.GithubUrl);
-                            installedGithubModAndOriginalBoolAndUrl[newGithubModNotManageInMA.GithubMod] = tempGithubModInformation;
-                        }
+                        dataManager.InputGithubModInformation(githubManager, fileAndVersion, ref githubModInformationCsv);
+                        GithubModInformationCsv newGithubModNotManageInMA = githubModInformationCsv[githubModInformationCsv.Count - 1];
+                        Tuple<bool, string> tempGithubModInformation = new Tuple<bool, string>(newGithubModNotManageInMA.OriginalMod, newGithubModNotManageInMA.GithubUrl);
+                        installedGithubModAndOriginalBoolAndUrl[newGithubModNotManageInMA.GithubMod] = tempGithubModInformation;
                     }
                 }
-                // ローカルの差分を反映
-                dataManager.ManageLocalPluginsDiff(nowLocalFilesInfoDictionary, modAssistantAllMods, githubManager,
-                    ref installedGithubModAndOriginalBoolAndUrl, ref githubModInformationCsv);
+                dataManager.DetectAddedMAModForUpdate(item, ref installedGithubModAndOriginalBoolAndUrl, ref githubModInformationCsv);
             }
+
             foreach (var fileNameAndOriginalBoolAndUrl in installedGithubModAndOriginalBoolAndUrl)
             {
                 string pluginPath = Path.Combine(nowPluginsPath, fileNameAndOriginalBoolAndUrl.Key);

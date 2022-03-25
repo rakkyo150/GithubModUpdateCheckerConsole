@@ -56,7 +56,8 @@ namespace GithubModUpdateCheckerConsole.Utils
 
                 if (manageInModAssistant == "y")
                 {
-                    Console.WriteLine("ModAssistantModData.csvに追加します");
+                    Console.WriteLine("ModAssistantModData.csvにデータを追加します");
+                    Console.WriteLine("データを書き換えたい場合、このcsvを直接書き換えてください");
 
                     var modAssistantCsvInstance = new MAModInformationCsv()
                     {
@@ -80,7 +81,7 @@ namespace GithubModUpdateCheckerConsole.Utils
                 if (githubModAndOriginalBoolAndUrl[item.name].Item1)
                 {
                     Console.WriteLine(item.name + "はオリジナルModとして登録されており、かつModAssistantにあります");
-                    Console.WriteLine($"よって、{ item.name} + を管理から外します");
+                    Console.WriteLine($"よって、{ item.name} を管理から外します");
 
                     githubModAndOriginalBoolAndUrl.Remove(item.name);
                     githubModInformationCsv.Remove(githubModInformationCsv.Find(n => n.GithubMod == item.name));
@@ -163,6 +164,11 @@ namespace GithubModUpdateCheckerConsole.Utils
                         Console.WriteLine("Google検索できませんでした");
                     }
                 }
+                else if(githubUrl == "p")
+                {
+                    Console.WriteLine("最新のリリース情報を取得しません");
+                    inputUrlFinish = true;
+                }
                 else
                 {
                     Console.WriteLine("Githubの最新のリリースのタグ情報を取得します");
@@ -185,7 +191,8 @@ namespace GithubModUpdateCheckerConsole.Utils
                 }
             }
 
-            Console.WriteLine("GithubModData.csvに追加します");
+            Console.WriteLine("GithubModData.csvにデータを追加します");
+            Console.WriteLine("データを書き換えたい場合、このcsvを直接書き換えてください");
 
             var githubModInstance = new GithubModInformationCsv()
             {

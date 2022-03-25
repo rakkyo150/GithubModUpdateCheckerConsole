@@ -13,14 +13,14 @@ GitHubのPersonal access tokenは、GitHubのアカウントを作成の上、Se
 
 もし設定を変えたくなったら、config.jsonを直接書き換えてください。
 
-次にダウンロードしているModの情報を入力していきます。<br>
+次にPluginsにダウンロードしているModの情報を入力していきます。<br>
 ここで、GitHubのリポジトリのURLを入力するのですが、例えばNalulunaさんのModのようにもしGitHubのURLが無ければ、"p"と入力してください。<br>
 "p"と入力されたModについてはGitHubでの検索・ダウンロードをしません。<br>
 また、URLが分からずGoogle検索をしたい場合は、"s"と入力すれば、自動的にModのファイル名でGoogle検索してくれます。
 
 オリジナルのModかどうかの入力も必要ですが、これは後々ModAssistantに追加されたときに、Mod管理をModAssistantに切り替えるかどうかの判断で使います。<br>
-オリジナルのModとして登録した場合は、ModAssistantに追加されたときに、Mod管理をModAssistantに切り替えるかどうか確認します。<br>
-逆にオリジナルの改造Modとして登録した場合は、ModAssistantに同名のModが追加されても無視します。<br>
+オリジナルのModとして登録した場合は、ModAssistantに追加されたときに、自動的にMod管理をModAssistantに任せるようになり、このツールでは管理できなくなります。<br>
+逆にオリジナルの改造Modとして登録した場合は、ModAssistantに同名のModが追加されても無視しして、引き続きこのツールで管理できます。<br>
 
 ここで入力したMod情報を変更したい場合は、DataフォルダのGithubModData.csvやModAssistantModData.csvを直接変更してください。<br>
 
