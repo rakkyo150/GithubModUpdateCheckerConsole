@@ -37,6 +37,7 @@ namespace GithubModUpdateCheckerConsole.Utils
                     {
                         mod.name = "BS_Utils";
                     }
+                    mod.name=mod.name.Replace(" ", "");
                 }
             }
             catch (Exception ex) { Console.WriteLine(ex.Message); }

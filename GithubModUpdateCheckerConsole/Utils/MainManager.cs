@@ -155,6 +155,8 @@ namespace GithubModUpdateCheckerConsole
                 {
                     KeyValuePair<string,Version> fileAndVersion=new KeyValuePair<string,Version>(item.name,nowLocalFilesInfoDictionary[item.name]);
 
+                    Console.WriteLine("****************************************************");
+                    
                     passInputGithubModInformation=dataManager.DetectMAModAndRemoveFromManagementForUpdate(item, fileAndVersion,installedMAMod);
 
                     if (!passInputGithubModInformation)
