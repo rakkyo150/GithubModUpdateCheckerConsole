@@ -1,9 +1,10 @@
 ﻿using GithubModUpdateCheckerConsole.Interfaces;
+using GithubModUpdateCheckerConsole.Utils;
 using Octokit;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -13,7 +14,90 @@ namespace GithubModUpdateCheckerConsole
 {
     internal class GithubManager : IGithubManager
     {
-        public async Task DownloadGithubModAsync(string url,Version currentVersion,string destDirFullPath)
+        public void InputGithubModInformation(KeyValuePair<string, Version> fileAndVersion)
+        {
+            Console.WriteLine($"{fileAndVersion.Key} : {fileAndVersion.Value}");
+
+            Console.WriteLine("オリジナルModですか？ [y/n]");
+            var ok = Console.ReadLine();
+            bool originalMod;
+            if (ok == "y")
+            {
+                originalMod = true;
+            }
+            else
+            {
+                originalMod = false;
+            }
+
+            string githubUrl = "p";
+            string githubModVersion = "0.0.0";
+            bool inputUrlFinish = false;
+            while (!inputUrlFinish)
+            {
+                Console.WriteLine("GithubのリポジトリのURLを入力してください");
+                Console.WriteLine("Google検索したい場合は\"s\"を、URLが無いような場合は\"p\"を入力してください");
+                githubUrl = Console.ReadLine();
+                if (githubUrl == "s")
+                {
+                    try
+                    {
+                        string searchUrl = $"https://www.google.com/search?q={fileAndVersion.Key}";
+                        ProcessStartInfo pi = new ProcessStartInfo()
+                        {
+                            FileName = searchUrl,
+                            UseShellExecute = true,
+                        };
+                        Process.Start(pi);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                        Console.WriteLine("Google検索できませんでした");
+                    }
+                }
+                else if (githubUrl == "p")
+                {
+                    Console.WriteLine("最新のリリース情報を取得しません");
+                    inputUrlFinish = true;
+                }
+                else
+                {
+                    Console.WriteLine("Githubの最新のリリースのタグ情報を取得します");
+
+                    githubModVersion = GetGithubModLatestVersion(githubUrl).Result.ToString();
+                    if (githubModVersion == new Version("0.0.0").ToString())
+                    {
+                        Console.WriteLine("リリース情報が取得できませんでした");
+                        Console.WriteLine("URLを修正しますか？ [y/n]");
+                        var a = Console.ReadLine();
+                        if (a != "y")
+                        {
+                            inputUrlFinish = true;
+                        }
+                    }
+                    else
+                    {
+                        inputUrlFinish = true;
+                    }
+                }
+            }
+
+            Console.WriteLine("GithubModData.csvにデータを追加します");
+            Console.WriteLine("データを書き換えたい場合、このcsvを直接書き換えてください");
+
+            var githubModInstance = new GithubModInformationCsv()
+            {
+                GithubMod = fileAndVersion.Key,
+                LocalVersion = fileAndVersion.Value.ToString(),
+                GithubVersion = githubModVersion,
+                OriginalMod = originalMod,
+                GithubUrl = githubUrl,
+            };
+            DataContainer.updateGithubModInformationCsv.Add(githubModInstance);
+        }
+
+        public async Task DownloadGithubModAsync(string url, Version currentVersion, string destDirFullPath)
         {
             if (url == "p") return;
 
@@ -59,7 +143,7 @@ namespace GithubModUpdateCheckerConsole
                 {
                     Console.WriteLine("****************************************************");
                     Console.WriteLine($"{owner}/{name}の最新バージョン:{latestVersion}が見つかりました");
-                    
+
                     Console.WriteLine("----------------------------------------------------");
                     if ((now - releaseCreatedAt).Days >= 1)
                     {
@@ -118,7 +202,7 @@ namespace GithubModUpdateCheckerConsole
                     }
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
                 Console.WriteLine("リリースが見つかりませんでした");
@@ -137,13 +221,13 @@ namespace GithubModUpdateCheckerConsole
             string temp = url.Replace("https://github.com/", "");
             int nextSlashPosition = temp.IndexOf('/');
 
-            if(nextSlashPosition == -1)
+            if (nextSlashPosition == -1)
             {
                 Console.WriteLine("URLにミスがあるかもしれません");
                 Console.WriteLine($"対象のURL : {url}");
                 return new Version("0.0.0");
             }
-            
+
             string owner = temp.Substring(0, nextSlashPosition);
             string name = temp.Substring(nextSlashPosition + 1);
 
@@ -154,8 +238,8 @@ namespace GithubModUpdateCheckerConsole
                 var response = github.Repository.Release.GetLatest(owner, name);
                 string latestVersionRaw = response.Result.TagName;
 
-                int position=0;
-                foreach(char item in latestVersionRaw)
+                int position = 0;
+                foreach (char item in latestVersionRaw)
                 {
                     if (item >= '0' && item <= '9')
                     {
@@ -187,7 +271,7 @@ namespace GithubModUpdateCheckerConsole
                 {
                     using var content = response.Content;
                     using var stream = await content.ReadAsStreamAsync();
-                    if(!Directory.Exists(destDirFullPath))
+                    if (!Directory.Exists(destDirFullPath))
                     {
                         Directory.CreateDirectory(destDirFullPath);
                     }

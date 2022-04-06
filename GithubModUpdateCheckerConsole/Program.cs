@@ -10,6 +10,7 @@ string configFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.
 bool initialize = false;
 
 IMainManager mainManager = new MainManager();
+DataManager dataManager = new DataManager();
 
 ConfigManager configManager = new ConfigManager();
 
@@ -24,21 +25,21 @@ if (!File.Exists(configFile))
 configManager.LoadConfigFile(configFile);
 
 Console.WriteLine("バックアップを作成します");
-mainManager.Backup();
+dataManager.Backup();
 
-mainManager.CleanModsTemp(downloadModsTemp);
+dataManager.CleanModsTemp(downloadModsTemp);
 Console.WriteLine("モードを選んでください");
 Console.WriteLine("[1] 通常アップデートチェック");
 Console.WriteLine("[2] BSアップデート後のアップデートチェック");
 Console.WriteLine("[3] csvからダウンロード");
 string? mode = Console.ReadLine();
 
-if(mode == "1")
+if (mode == "1")
 {
     Console.WriteLine("通常アップデートチェックスタート");
     await mainManager.UpdateGithubModForUsualBSVersionAsync();
 }
-else if(mode == "2")
+else if (mode == "2")
 {
     Console.WriteLine("BSアップデート後のアップデートチェックスタート");
     await mainManager.UpdateGithubModForNewBSVersionAsync();

@@ -1,16 +1,23 @@
-﻿using GithubModUpdateCheckerConsole.Interfaces;
+﻿using CsvHelper;
+using GithubModUpdateCheckerConsole.Interfaces;
 using GithubModUpdateCheckerConsole.Structure;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
-using System.Threading.Tasks;
+using System.Linq;
+using System.Text;
 
 namespace GithubModUpdateCheckerConsole.Utils
 {
-    internal class DataManager : IDataManager
+    internal class DataManager
     {
+        /// <summary>
+        /// ローカル情報取得
+        /// </summary>
+        /// <param name="pluginsFolderPath"></param>
+        /// <returns></returns>
         public Dictionary<string, Version> GetLocalModFilesInfo(string pluginsFolderPath)
         {
             // Console.WriteLine("Start Getting FileInfo");
@@ -31,15 +38,22 @@ namespace GithubModUpdateCheckerConsole.Utils
             return filesInfo;
         }
 
-        public bool DetectMAModAndRemoveFromManagementForInitialize(ModAssistantModInformation item, KeyValuePair<string, Version> fileAndVersion, ref List<MAModInformationCsv> detectedModAssistantModCsvList, out bool loopBreaklocalFileSearchLoopBreak )
+        /// <summary>
+        /// イニシャライズ時の処理で、ModAssistantのModの処理
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="fileAndVersion"></param>
+        /// <param name="loopBreaklocalFileSearchLoopBreak"></param>
+        /// <returns></returns>
+        public bool DetectMAModAndRemoveFromManagementForInitialize(ModAssistantModInformation item, KeyValuePair<string, Version> fileAndVersion, out bool loopBreaklocalFileSearchLoopBreak)
         {
             loopBreaklocalFileSearchLoopBreak = false;
-            bool passInputGithubModInformation= false;
+            bool passInputGithubModInformation = false;
 
 
             if (item.name == fileAndVersion.Key)
             {
-                loopBreaklocalFileSearchLoopBreak  = true;
+                loopBreaklocalFileSearchLoopBreak = true;
 
                 Version modAssistantModVersion = new Version(item.version);
                 if (modAssistantModVersion >= fileAndVersion.Value)
@@ -65,7 +79,7 @@ namespace GithubModUpdateCheckerConsole.Utils
                         LocalVersion = fileAndVersion.Value.ToString(),
                         ModAssistantVersion = item.version,
                     };
-                    detectedModAssistantModCsvList.Add(modAssistantCsvInstance);
+                    DataContainer.detectedModAssistantModCsvList.Add(modAssistantCsvInstance);
 
                     passInputGithubModInformation = true;
                 }
@@ -74,27 +88,37 @@ namespace GithubModUpdateCheckerConsole.Utils
             return passInputGithubModInformation;
         }
 
-        public void DetectAddedMAModForUpdate(ModAssistantModInformation item, ref Dictionary<string, Tuple<bool, string>> githubModAndOriginalBoolAndUrl, ref List<GithubModInformationCsv> githubModInformationCsv)
+        /// <summary>
+        /// アップデート時の処理で、前回実行時から追加されたModAssistantのModの処理
+        /// </summary>
+        /// <param name="item"></param>
+        public void DetectAddedMAModForUpdate(ModAssistantModInformation item)
         {
-            if (githubModAndOriginalBoolAndUrl.ContainsKey(item.name))
+            if (DataContainer.nowLocalGithubModAndOriginalBoolAndUrl.ContainsKey(item.name))
             {
-                if (githubModAndOriginalBoolAndUrl[item.name].Item1)
+                if (DataContainer.nowLocalGithubModAndOriginalBoolAndUrl[item.name].Item1)
                 {
                     Console.WriteLine(item.name + "はオリジナルModとして登録されており、かつModAssistantにあります");
                     Console.WriteLine($"よって、{ item.name} を管理から外します");
 
-                    githubModAndOriginalBoolAndUrl.Remove(item.name);
-                    githubModInformationCsv.Remove(githubModInformationCsv.Find(n => n.GithubMod == item.name));
+                    DataContainer.nowLocalGithubModAndOriginalBoolAndUrl.Remove(item.name);
+                    DataContainer.updateGithubModInformationCsv.Remove(DataContainer.updateGithubModInformationCsv.Find(n => n.GithubMod == item.name));
                 }
             }
         }
 
-        public bool DetectMAModAndRemoveFromManagementForUpdate(ModAssistantModInformation item, KeyValuePair<string, Version> fileAndVersion,  List<string> installedMAMod)
+        /// <summary>
+        /// アップデート時の処理で、ローカル増加分でModAssistantにあるModの処理
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="fileAndVersion"></param>
+        /// <returns></returns>
+        public bool DetectMAModAndRemoveFromManagementForUpdate(ModAssistantModInformation item, KeyValuePair<string, Version> fileAndVersion)
         {
             bool passInputGithubModInformation = true;
 
 
-            if (!installedMAMod.Contains(item.name) && item.name == fileAndVersion.Key)
+            if (!DataContainer.installedMAMod.Contains(item.name) && item.name == fileAndVersion.Key)
             {
                 Version modAssistantModVersion = new Version(item.version);
                 if (modAssistantModVersion >= fileAndVersion.Value)
@@ -115,122 +139,131 @@ namespace GithubModUpdateCheckerConsole.Utils
                 }
                 else
                 {
-                    passInputGithubModInformation= false;
+                    passInputGithubModInformation = false;
                 }
             }
 
             return passInputGithubModInformation;
         }
 
-        public void InputGithubModInformation(IGithubManager githubManager, KeyValuePair<string, Version> fileAndVersion, ref List<GithubModInformationCsv> githubModInformationCsv)
-        {
-            Console.WriteLine($"{fileAndVersion.Key} : {fileAndVersion.Value}");
 
-            Console.WriteLine("オリジナルModですか？ [y/n]");
-            var ok = Console.ReadLine();
-            bool originalMod;
-            if (ok == "y")
-            {
-                originalMod = true;
-            }
-            else
-            {
-                originalMod = false;
-            }
-
-            string githubUrl = "p";
-            string githubModVersion="0.0.0";
-            bool inputUrlFinish = false;
-            while (!inputUrlFinish)
-            {
-                Console.WriteLine("GithubのリポジトリのURLを入力してください");
-                Console.WriteLine("Google検索したい場合は\"s\"を、URLが無いような場合は\"p\"を入力してください");
-                githubUrl = Console.ReadLine();
-                if (githubUrl == "s")
-                {
-                    try
-                    {
-                        string searchUrl = $"https://www.google.com/search?q={fileAndVersion.Key}";
-                        ProcessStartInfo pi = new ProcessStartInfo()
-                        {
-                            FileName = searchUrl,
-                            UseShellExecute = true,
-                        };
-                        Process.Start(pi);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                        Console.WriteLine("Google検索できませんでした");
-                    }
-                }
-                else if(githubUrl == "p")
-                {
-                    Console.WriteLine("最新のリリース情報を取得しません");
-                    inputUrlFinish = true;
-                }
-                else
-                {
-                    Console.WriteLine("Githubの最新のリリースのタグ情報を取得します");
-
-                    githubModVersion = githubManager.GetGithubModLatestVersion(githubUrl).Result.ToString();
-                    if (githubModVersion == new Version("0.0.0").ToString())
-                    {
-                        Console.WriteLine("リリース情報が取得できませんでした");
-                        Console.WriteLine("URLを修正しますか？ [y/n]");
-                        var a=Console.ReadLine();
-                        if (a != "y")
-                        {
-                            inputUrlFinish = true;
-                        }
-                    }
-                    else
-                    {
-                        inputUrlFinish = true;
-                    }
-                }
-            }
-
-            Console.WriteLine("GithubModData.csvにデータを追加します");
-            Console.WriteLine("データを書き換えたい場合、このcsvを直接書き換えてください");
-
-            var githubModInstance = new GithubModInformationCsv()
-            {
-                GithubMod = fileAndVersion.Key,
-                LocalVersion = fileAndVersion.Value.ToString(),
-                GithubVersion = githubModVersion,
-                OriginalMod = originalMod,
-                GithubUrl = githubUrl,
-            };
-            githubModInformationCsv.Add(githubModInstance);
-        }
-
-        public void ManageLocalPluginsDiff(Dictionary<string, Version> localFilesInfoDictionary, ModAssistantModInformation[] modAssistantAllMods, IGithubManager githubManager,
-            ref Dictionary<string, Tuple<bool, string>> githubModAndOriginalBoolAndUrl, ref List<GithubModInformationCsv> githubModInformationCsv)
+        /// <summary>
+        /// ローカルファイルの差分を取得
+        /// </summary>
+        /// <param name="githubManager"></param>
+        public void ManageLocalPluginsDiff(IGithubManager githubManager)
         {
             // ローカルファイル減少分
-            foreach (var a in githubModAndOriginalBoolAndUrl)
+            foreach (var a in DataContainer.nowLocalGithubModAndOriginalBoolAndUrl)
             {
-                if (!localFilesInfoDictionary.ContainsKey(a.Key))
+                if (!DataContainer.nowLocalFilesInfoDictionary.ContainsKey(a.Key))
                 {
-                    githubModAndOriginalBoolAndUrl.Remove(a.Key);
-                    githubModInformationCsv.Remove(githubModInformationCsv.Find(n => n.GithubMod == a.Key));
+                    DataContainer.nowLocalGithubModAndOriginalBoolAndUrl.Remove(a.Key);
+                    DataContainer.updateGithubModInformationCsv.Remove(DataContainer.updateGithubModInformationCsv.Find(n => n.GithubMod == a.Key));
                 }
             }
             // ローカルファイル増加分
-            foreach (var a in localFilesInfoDictionary)
+            foreach (var a in DataContainer.nowLocalFilesInfoDictionary)
             {
-                if (!githubModAndOriginalBoolAndUrl.ContainsKey(a.Key) && !Array.Exists(modAssistantAllMods, element => element.name == a.Key))
+                if (!DataContainer.nowLocalGithubModAndOriginalBoolAndUrl.ContainsKey(a.Key) && !Array.Exists(DataContainer.modAssistantAllMods, element => element.name == a.Key))
                 {
-                    InputGithubModInformation(githubManager, new KeyValuePair<string, Version>(a.Key, a.Value), ref githubModInformationCsv);
-                    Tuple<bool, string> tempGithubModInformation = new Tuple<bool, string>(githubModInformationCsv.Find(n => n.GithubMod == a.Key).OriginalMod, githubModInformationCsv.Find(n => n.GithubMod == a.Key).GithubUrl);
-                    githubModAndOriginalBoolAndUrl[a.Key] = tempGithubModInformation;
+                    githubManager.InputGithubModInformation(new KeyValuePair<string, Version>(a.Key, a.Value));
+                    Tuple<bool, string> tempGithubModInformation = new Tuple<bool, string>(DataContainer.updateGithubModInformationCsv.Find(n => n.GithubMod == a.Key).OriginalMod, DataContainer.updateGithubModInformationCsv.Find(n => n.GithubMod == a.Key).GithubUrl);
+                    DataContainer.nowLocalGithubModAndOriginalBoolAndUrl[a.Key] = tempGithubModInformation;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Beat Saberのバージョンを取得
+        /// </summary>
+        /// <returns></returns>
+        public string GetGameVersion()
+        {
+            string filename = Path.Combine(Settings.Instance.BeatSaberExeFolderPath, "Beat Saber_Data", "globalgamemanagers");
+            using (var stream = File.OpenRead(filename))
+            using (var reader = new BinaryReader(stream, Encoding.UTF8))
+            {
+                const string key = "public.app-category.games";
+                int pos = 0;
+
+                while (stream.Position < stream.Length && pos < key.Length)
+                {
+                    if (reader.ReadByte() == key[pos]) pos++;
+                    else pos = 0;
+                }
+
+                if (stream.Position == stream.Length) // we went through the entire stream without finding the key
+                    return null;
+
+                while (stream.Position < stream.Length)
+                {
+                    var current = (char)reader.ReadByte();
+                    if (char.IsDigit(current))
+                        break;
+                }
+
+                var rewind = -sizeof(int) - sizeof(byte);
+                stream.Seek(rewind, SeekOrigin.Current); // rewind to the string length
+
+                var strlen = reader.ReadInt32();
+                var strbytes = reader.ReadBytes(strlen);
+
+                return Encoding.UTF8.GetString(strbytes);
+            }
+        }
+
+        /// <summary>
+        /// csvにリストの情報を書き込み
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="csvPath"></param>
+        /// <param name="list"></param>
+        public void WriteCsv<T>(string csvPath, List<T> list)
+        {
+            using var writer = new StreamWriter(csvPath, false);
+            using var csv = new CsvWriter(writer, new CultureInfo("ja-JP", false));
+            csv.WriteRecords(list);
+        }
+
+        public void ReadCsv<T>(string csvPath, out List<T> listOutput)
+        {
+            using var reader = new StreamReader(csvPath);
+            using var csv = new CsvReader(reader, new CultureInfo("ja-JP", false));
+            listOutput = csv.GetRecords<T>().ToList();
+        }
+
+        public void UpdateModAssistantModCsv()
+        {
+            if (DataContainer.modAssistantAllMods != null)
+            {
+                foreach (var a in DataContainer.modAssistantAllMods)
+                {
+                    if (!DataContainer.nowLocalGithubModAndOriginalBoolAndUrl.ContainsKey(a.name) && DataContainer.nowLocalFilesInfoDictionary.ContainsKey(a.name))
+                    {
+                        MAModInformationCsv modAssistantCsvInstance = new MAModInformationCsv()
+                        {
+                            ModAssistantMod = a.name,
+                            LocalVersion = DataContainer.nowLocalFilesInfoDictionary[a.name].ToString(),
+                            ModAssistantVersion = a.version,
+                        };
+
+                        DataContainer.updateModAssistantModCsvList.Add(modAssistantCsvInstance);
+                    }
+                }
+
+                WriteCsv(DataContainer.mAModCsvPath, DataContainer.updateModAssistantModCsvList);
             }
         }
 
         // https://docs.microsoft.com/ja-jp/dotnet/standard/io/how-to-copy-directories
-        // 上書きする
+        /// <summary>
+        /// ディレクトリ内のディレクトリとファイルコピー(上書き)
+        /// </summary>
+        /// <param name="sourceDirName"></param>
+        /// <param name="destDirName"></param>
+        /// <param name="copySubDirs"></param>
+        /// <exception cref="DirectoryNotFoundException"></exception>
         public void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs)
         {
             // Get the subdirectories for the specified directory.
@@ -268,7 +301,13 @@ namespace GithubModUpdateCheckerConsole.Utils
         }
 
         // sourceDirFullPathはModが一時的に保存される場所、destDirFullPathはBeat Saberディレクトリと同じ構造のもの
-        public async Task OrganizeDownloadFileStructure(string sourceDirFullPath,string destDirFullPath)
+        /// <summary>
+        /// ダウンロードしたModのフォルダ構造をローカルにインストール可能な状態に組み替えてコピーする
+        /// </summary>
+        /// <param name="sourceDirFullPath"></param>
+        /// <param name="destDirFullPath"></param>
+        /// <returns></returns>
+        public void OrganizeDownloadFileStructure(string sourceDirFullPath, string destDirFullPath)
         {
             if (Directory.GetFiles(sourceDirFullPath).Length > 0)
             {
@@ -281,7 +320,7 @@ namespace GithubModUpdateCheckerConsole.Utils
                     }
                     try
                     {
-                        var installPath = Path.Combine(destDirFullPath, "Plugins",Path.GetFileName(dllFileFullPath));
+                        var installPath = Path.Combine(destDirFullPath, "Plugins", Path.GetFileName(dllFileFullPath));
                         if (File.Exists(installPath))
                         {
                             File.Delete(installPath);
@@ -317,6 +356,65 @@ namespace GithubModUpdateCheckerConsole.Utils
                         Console.WriteLine($"{e}");
                     }
                 }
+            }
+        }
+
+        public void Backup()
+        {
+            if (!Directory.Exists(DataContainer.backupFodlerPath))
+            {
+                Console.WriteLine($"{DataContainer.backupFodlerPath}がありません");
+                Console.WriteLine($"{DataContainer.backupFodlerPath}を作成します");
+                Directory.CreateDirectory(DataContainer.backupFodlerPath);
+            }
+            if (!Directory.Exists(DataContainer.importCsv))
+            {
+                Console.WriteLine($"{DataContainer.importCsv}がありません");
+                Console.WriteLine($"{DataContainer.importCsv}を作成します");
+                Directory.CreateDirectory(DataContainer.importCsv);
+            }
+
+            DataContainer.nowGameVersion = GetGameVersion();
+            string now = DateTime.Now.ToString("yyyyMMddHHmmss");
+            string zipPath = Path.Combine(DataContainer.backupFodlerPath, $"BS{DataContainer.nowGameVersion}-{now}");
+            Directory.CreateDirectory(zipPath);
+
+            DirectoryCopy(DataContainer.nowPluginsPath, Path.Combine(zipPath, "Plugins"), true);
+            DirectoryCopy(DataContainer.importCsv, Path.Combine(zipPath, "Data"), true);
+            File.Copy(DataContainer.configFile, Path.Combine(zipPath, "config.json"), true);
+
+            ZipFile.CreateFromDirectory(zipPath, Path.Combine(DataContainer.backupFodlerPath, $"BS{DataContainer.nowGameVersion}-{now}.zip"));
+            Directory.Delete(zipPath, true);
+        }
+
+        public void CleanModsTemp(string path)
+        {
+            if (!Directory.Exists(DataContainer.downloadModsTemp))
+            {
+                Console.WriteLine($"{DataContainer.downloadModsTemp}がありません");
+                Console.WriteLine($"{DataContainer.downloadModsTemp}を作成します");
+                Directory.CreateDirectory(DataContainer.downloadModsTemp);
+            }
+            DirectoryInfo dir = new DirectoryInfo(DataContainer.downloadModsTemp);
+
+            //ディレクトリ以外の全ファイルを削除
+            string[] filePaths = Directory.GetFiles(path);
+            foreach (string filePath in filePaths)
+            {
+                File.SetAttributes(filePath, FileAttributes.Normal);
+                File.Delete(filePath);
+            }
+
+            //ディレクトリの中のディレクトリも再帰的に削除
+            string[] directiryPaths = Directory.GetDirectories(path);
+            foreach (string directoryPath in directiryPaths)
+            {
+                CleanModsTemp(directoryPath);
+            }
+
+            if (path != DataContainer.downloadModsTemp)
+            {
+                Directory.Delete(path, false);
             }
         }
     }
