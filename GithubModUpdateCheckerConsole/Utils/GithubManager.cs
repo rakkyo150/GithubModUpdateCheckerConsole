@@ -126,18 +126,12 @@ namespace GithubModUpdateCheckerConsole
                 var releaseCreatedAt = response.Result.CreatedAt;
                 DateTimeOffset now = DateTimeOffset.UtcNow;
 
-                string latestVersionRaw = response.Result.TagName;
+                Version latestVersion = DetectVersion(response.Result.TagName);
 
-                int position = 0;
-                foreach (char item in latestVersionRaw)
+                if (latestVersion == null)
                 {
-                    if (item >= '0' && item <= '9')
-                    {
-                        break;
-                    }
-                    position++;
+                    throw new Exception("バージョン情報の取得に失敗");
                 }
-                Version latestVersion = new Version(latestVersionRaw.Substring(position));
 
                 if (latestVersion > currentVersion)
                 {
@@ -231,23 +225,18 @@ namespace GithubModUpdateCheckerConsole
             string owner = temp.Substring(0, nextSlashPosition);
             string name = temp.Substring(nextSlashPosition + 1);
 
-            Version latestVersion;
+            Version latestVersion=null;
 
             try
             {
-                var response = github.Repository.Release.GetLatest(owner, name);
-                string latestVersionRaw = response.Result.TagName;
+                // プレリリースを取得する場合はGetAllしかないが、効率が悪いのでプレリリースには対応しません
+                var response = github.Repository.Release.GetLatest(owner, name);               
+                latestVersion = DetectVersion(response.Result.TagName);
 
-                int position = 0;
-                foreach (char item in latestVersionRaw)
+                if (latestVersion == null)
                 {
-                    if (item >= '0' && item <= '9')
-                    {
-                        break;
-                    }
-                    position++;
+                    throw new Exception("バージョン情報の取得に失敗");
                 }
-                latestVersion = new Version(latestVersionRaw.Substring(position));
             }
             catch (Exception ex)
             {
@@ -286,6 +275,39 @@ namespace GithubModUpdateCheckerConsole
                 Console.WriteLine("URLにミスがあるかもしれません");
                 Console.WriteLine($"対象のURL : {uri}");
             }
+        }
+
+        public Version DetectVersion(string tagName)
+        {
+            Version version=null;
+            
+            // バージョン情報が始まる位置を特定
+            int position = 0;
+            foreach (char item in tagName)
+            {
+                if (item >= '0' && item <= '9')
+                {
+                    break;
+                }
+                position++;
+            }
+
+            //　バージョン情報が終わる位置を特定
+            for (int i = 0; i <= tagName.Length - position - 1; i++)
+            {
+                char versionDetector = tagName[position + i];
+                if (!(versionDetector >= '0' && versionDetector <= '9') && versionDetector != '.')
+                {
+                    version = new Version(tagName.Substring(position, i));
+                    break;
+                }
+                if (i == tagName.Length - position - 1)
+                {
+                    version = new Version(tagName.Substring(position));
+                }
+            }
+
+            return version;
         }
     }
 }

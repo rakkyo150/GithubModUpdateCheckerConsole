@@ -9,7 +9,7 @@ namespace GithubModUpdateCheckerConsole.Interfaces
         void InputGithubModInformation(KeyValuePair<string, Version> fileAndVersion);
 
         /// <summary>
-        /// 最新バージョンを取得、現在のバージョンよりも高いの場合はダウンロード
+        /// リリースの情報を取得、リリースのバージョンが現在のバージョンよりも高い場合はダウンロード
         /// </summary>
         /// <param name="url"></param>
         /// <param name="currentVersion"></param>
