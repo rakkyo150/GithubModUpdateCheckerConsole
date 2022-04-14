@@ -22,8 +22,8 @@ namespace GithubModUpdateCheckerConsole.Interfaces
         /// </summary>
         /// <returns></returns>
         Task UpdateGithubModForNewBSVersionAsync();
-        
-        
+
+
         /// <summary>
         /// csvに書かれているModをModsTempにダウンロード
         /// </summary>

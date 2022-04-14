@@ -14,7 +14,8 @@ namespace GithubModUpdateCheckerConsole
 {
     internal class GithubManager : IGithubManager
     {
-        public void InputGithubModInformation(KeyValuePair<string, Version> fileAndVersion)
+        // Initializeでも使うので第二引数が必要
+        public void InputGithubModInformation(KeyValuePair<string, Version> fileAndVersion, List<GithubModInformationCsv> githubModInformationToCsv)
         {
             Console.WriteLine($"{fileAndVersion.Key} : {fileAndVersion.Value}");
 
@@ -94,10 +95,10 @@ namespace GithubModUpdateCheckerConsole
                 OriginalMod = originalMod,
                 GithubUrl = githubUrl,
             };
-            DataContainer.updateGithubModInformationCsv.Add(githubModInstance);
+            githubModInformationToCsv.Add(githubModInstance);
         }
 
-        public async Task DownloadGithubModAsync(string url, Version currentVersion, string destDirFullPath)
+        public async Task DownloadGithubModAsync(string url, Version currentVersion, string destDirFullPath, List<GithubModInformationCsv> githubModInformationToCsv, string fileName)
         {
             if (url == "p") return;
 
@@ -186,6 +187,17 @@ namespace GithubModUpdateCheckerConsole
                                 Console.WriteLine("ダウンロード成功！");
                             }
 
+                            if (githubModInformationToCsv != null)
+                            {
+                                if (githubModInformationToCsv.Find(n => n.GithubMod == fileName) == null)
+                                {
+                                    Console.WriteLine("csvのModのバージョンを更新できませんでした");
+                                }
+                                else
+                                {
+                                    githubModInformationToCsv.Find(n => n.GithubMod == fileName).LocalVersion = latestVersion.ToString();
+                                }
+                            }
                             downloadChoiceFinish = true;
                         }
                         else
@@ -225,12 +237,12 @@ namespace GithubModUpdateCheckerConsole
             string owner = temp.Substring(0, nextSlashPosition);
             string name = temp.Substring(nextSlashPosition + 1);
 
-            Version latestVersion=null;
+            Version latestVersion = null;
 
             try
             {
                 // プレリリースを取得する場合はGetAllしかないが、効率が悪いのでプレリリースには対応しません
-                var response = github.Repository.Release.GetLatest(owner, name);               
+                var response = github.Repository.Release.GetLatest(owner, name);
                 latestVersion = DetectVersion(response.Result.TagName);
 
                 if (latestVersion == null)
@@ -279,8 +291,8 @@ namespace GithubModUpdateCheckerConsole
 
         public Version DetectVersion(string tagName)
         {
-            Version version=null;
-            
+            Version version = null;
+
             // バージョン情報が始まる位置を特定
             int position = 0;
             foreach (char item in tagName)

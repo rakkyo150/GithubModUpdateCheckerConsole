@@ -22,14 +22,14 @@ namespace GithubModUpdateCheckerConsole
         public static Dictionary<string, Version> nowLocalFilesInfoDictionary { get; set; }
         public static Dictionary<string, Version> oldLocalFilesInfoDictionary { get; set; }
 
-        public static Dictionary<string, Tuple<Version,bool, string>> nowLocalGithubModAndVersionAndOriginalBoolAndUrl { get; set; } = new Dictionary<string, Tuple<Version,bool, string>>();
+        public static Dictionary<string, Tuple<Version, bool, string>> nowLocalGithubModAndVersionAndOriginalBoolAndUrl { get; set; } = new Dictionary<string, Tuple<Version, bool, string>>();
         public static List<string> installedMAMod { get; set; } = new List<string>();
 
         public static ModAssistantModInformation[] modAssistantAllMods { get; set; }
 
-        public static List<GithubModInformationCsv> initializeGithubModInformationCsv { get; set; } = new List<GithubModInformationCsv>();
-        public static List<GithubModInformationCsv> updateGithubModInformationCsv { get; set; } = new List<GithubModInformationCsv>();
-        public static List<MAModInformationCsv> detectedModAssistantModCsvList { get; set; } = new List<MAModInformationCsv>();
-        public static List<MAModInformationCsv> updateModAssistantModCsvList { get; set; } = new List<MAModInformationCsv>();
+        public static List<GithubModInformationCsv> installedGithubModInformationToCsvForInitialize { get; set; } = new List<GithubModInformationCsv>();
+        public static List<GithubModInformationCsv> installedGithubModInformationToCsvForUpdate { get; set; } = new List<GithubModInformationCsv>();
+        public static List<MAModInformationCsv> detectedModAssistantModCsvListForInitialize { get; set; } = new List<MAModInformationCsv>();
+        public static List<MAModInformationCsv> modAssistantModCsvListForUpdate { get; set; } = new List<MAModInformationCsv>();
     }
 }

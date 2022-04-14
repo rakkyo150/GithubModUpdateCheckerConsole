@@ -1,10 +1,8 @@
-﻿using CsvHelper;
-using GithubModUpdateCheckerConsole.Interfaces;
+﻿using GithubModUpdateCheckerConsole.Interfaces;
 using GithubModUpdateCheckerConsole.Structure;
 using GithubModUpdateCheckerConsole.Utils;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -55,7 +53,7 @@ namespace GithubModUpdateCheckerConsole
 
                 if (!passInputGithubModInformation)
                 {
-                    githubManager.InputGithubModInformation(fileAndVersion);
+                    githubManager.InputGithubModInformation(fileAndVersion, DataContainer.installedGithubModInformationToCsvForInitialize);
                 }
             }
 
@@ -64,12 +62,12 @@ namespace GithubModUpdateCheckerConsole
                 Directory.CreateDirectory(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data"));
             }
 
-            if (DataContainer.detectedModAssistantModCsvList.Count > 0)
+            if (DataContainer.detectedModAssistantModCsvListForInitialize.Count > 0)
             {
-                WriteCsv(DataContainer.mAModCsvPath, DataContainer.detectedModAssistantModCsvList);
+                WriteCsv(DataContainer.mAModCsvPath, DataContainer.detectedModAssistantModCsvListForInitialize);
             }
 
-            WriteCsv(DataContainer.githubModCsvPath, DataContainer.initializeGithubModInformationCsv);
+            WriteCsv(DataContainer.githubModCsvPath, DataContainer.installedGithubModInformationToCsvForInitialize);
         }
 
         public async Task UpdateGithubModForUsualBSVersionAsync()
@@ -83,21 +81,21 @@ namespace GithubModUpdateCheckerConsole
 
             DataContainer.modAssistantAllMods = await modAssistantManager.GetAllModAssistantMods();
 
-            ReadCsv(DataContainer.githubModCsvPath, out List<GithubModInformationCsv> githubModInformationList);
+            ReadCsv(DataContainer.githubModCsvPath, out List<GithubModInformationCsv> previousGithubModInformationList);
 
-            ReadCsv(DataContainer.mAModCsvPath, out List<MAModInformationCsv> mAModInformationList);
+            ReadCsv(DataContainer.mAModCsvPath, out List<MAModInformationCsv> previousMAModInformationList);
 
-            foreach (var githubModInformation in githubModInformationList)
+            foreach (var previousGithubModInformation in previousGithubModInformationList)
             {
-                DataContainer.updateGithubModInformationCsv.Add(githubModInformation);
-                Tuple<Version ,bool, string> versionAndOriginalBoolAndUrl = new Tuple<Version,bool, string>(
-                    new Version(githubModInformation.GithubVersion) ,githubModInformation.OriginalMod, githubModInformation.GithubUrl
-                    );
-                DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl.Add(githubModInformation.GithubMod, versionAndOriginalBoolAndUrl);
+                DataContainer.installedGithubModInformationToCsvForUpdate.Add(previousGithubModInformation);
+                Tuple<Version, bool, string> versionAndOriginalBoolAndUrl = new Tuple<Version, bool, string>(
+                    new Version(previousGithubModInformation.LocalVersion), previousGithubModInformation.OriginalMod, previousGithubModInformation.GithubUrl
+                );
+                DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl.Add(previousGithubModInformation.GithubMod, versionAndOriginalBoolAndUrl);
             }
-            foreach (var mAModInformation in mAModInformationList)
+            foreach (var previousMAModInformation in previousMAModInformationList)
             {
-                DataContainer.installedMAMod.Add(mAModInformation.ModAssistantMod);
+                DataContainer.installedMAMod.Add(previousMAModInformation.ModAssistantMod);
             }
 
             DataContainer.nowLocalFilesInfoDictionary = GetLocalModFilesInfo(DataContainer.nowPluginsPath, DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl);
@@ -120,10 +118,10 @@ namespace GithubModUpdateCheckerConsole
 
                     if (!passInputGithubModInformation)
                     {
-                        githubManager.InputGithubModInformation(fileAndVersion);
-                        GithubModInformationCsv newGithubModNotManageInMA = DataContainer.updateGithubModInformationCsv[DataContainer.updateGithubModInformationCsv.Count - 1];
+                        githubManager.InputGithubModInformation(fileAndVersion, DataContainer.installedGithubModInformationToCsvForUpdate);
+                        GithubModInformationCsv newGithubModNotManageInMA = DataContainer.installedGithubModInformationToCsvForUpdate[DataContainer.installedGithubModInformationToCsvForUpdate.Count - 1];
                         Tuple<Version, bool, string> tempGithubModInformation = new Tuple<Version, bool, string>(
-                            new Version(newGithubModNotManageInMA.GithubVersion),newGithubModNotManageInMA.OriginalMod, newGithubModNotManageInMA.GithubUrl);
+                            new Version(newGithubModNotManageInMA.LocalVersion), newGithubModNotManageInMA.OriginalMod, newGithubModNotManageInMA.GithubUrl);
                         DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl[newGithubModNotManageInMA.GithubMod] = tempGithubModInformation;
                     }
                 }
@@ -136,16 +134,17 @@ namespace GithubModUpdateCheckerConsole
 
                 var latestVersion = githubManager.GetGithubModLatestVersion(fileNameAndVersioinAndOriginalBoolAndUrl.Value.Item3).Result;
 
-                if (latestVersion > DataContainer.nowLocalFilesInfoDictionary[fileNameAndVersioinAndOriginalBoolAndUrl.Key])
+                if (latestVersion > fileNameAndVersioinAndOriginalBoolAndUrl.Value.Item1)
                 {
                     await githubManager.DownloadGithubModAsync(DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl[fileNameAndVersioinAndOriginalBoolAndUrl.Key].Item3,
-                        DataContainer.nowLocalFilesInfoDictionary[fileNameAndVersioinAndOriginalBoolAndUrl.Key], DataContainer.downloadModsTemp);
+                        DataContainer.nowLocalFilesInfoDictionary[fileNameAndVersioinAndOriginalBoolAndUrl.Key], DataContainer.downloadModsTemp,
+                        DataContainer.installedGithubModInformationToCsvForUpdate, fileNameAndVersioinAndOriginalBoolAndUrl.Key);
                 }
             }
 
             OrganizeDownloadFileStructure(DataContainer.downloadModsTemp, Settings.Instance.BeatSaberExeFolderPath);
 
-            WriteCsv(DataContainer.githubModCsvPath, DataContainer.updateGithubModInformationCsv);
+            WriteCsv(DataContainer.githubModCsvPath, DataContainer.installedGithubModInformationToCsvForUpdate);
 
             UpdateModAssistantModCsv();
         }
@@ -185,17 +184,16 @@ namespace GithubModUpdateCheckerConsole
 
                 foreach (var githubModInformation in githubModInformationList)
                 {
-                    DataContainer.updateGithubModInformationCsv.Add(githubModInformation);
+                    DataContainer.installedGithubModInformationToCsvForUpdate.Add(githubModInformation);
                     Tuple<Version, bool, string> versionAndOriginalBoolAndUrl = new Tuple<Version, bool, string>(
-                        new Version(githubModInformation.GithubVersion), githubModInformation.OriginalMod, githubModInformation.GithubUrl
+                        new Version(githubModInformation.LocalVersion), githubModInformation.OriginalMod, githubModInformation.GithubUrl
                     );
-                    // nowではなくoldが正確
+                    // 初回に関してはnowではなく前回実行時のデータを用いているのでold
                     DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl.Add(githubModInformation.GithubMod, versionAndOriginalBoolAndUrl);
                 }
 
-                
-                DataContainer.nowLocalFilesInfoDictionary = GetLocalModFilesInfo(DataContainer.nowPluginsPath,null);
-                DataContainer.oldLocalFilesInfoDictionary = GetLocalModFilesInfo(oldPluginsPath, DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl);
+                DataContainer.nowLocalFilesInfoDictionary = GetLocalModFilesInfo(DataContainer.nowPluginsPath, DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl);
+                DataContainer.oldLocalFilesInfoDictionary = GetLocalModFilesInfo(oldPluginsPath, null);
 
                 foreach (var fileNameAndVersionAndOriginalBoolAndUrl in DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl)
                 {
@@ -204,16 +202,14 @@ namespace GithubModUpdateCheckerConsole
                     if (!DataContainer.nowLocalFilesInfoDictionary.ContainsKey(fileName) && DataContainer.oldLocalFilesInfoDictionary.ContainsKey(fileName))
                     {
                         await githubManager.DownloadGithubModAsync(DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl[fileNameAndVersionAndOriginalBoolAndUrl.Key].Item3,
-                            DataContainer.oldLocalFilesInfoDictionary[fileNameAndVersionAndOriginalBoolAndUrl.Key], DataContainer.downloadModsTemp);
-                    }
-                    if (DataContainer.nowLocalFilesInfoDictionary.ContainsKey(fileName) && DataContainer.oldLocalFilesInfoDictionary.ContainsKey(fileName))
-                    {
-                        await githubManager.DownloadGithubModAsync(DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl[fileNameAndVersionAndOriginalBoolAndUrl.Key].Item3,
-                            DataContainer.nowLocalFilesInfoDictionary[fileNameAndVersionAndOriginalBoolAndUrl.Key], DataContainer.downloadModsTemp);
+                            new Version(DataContainer.installedGithubModInformationToCsvForUpdate.Find(n => n.GithubMod == fileName).LocalVersion),
+                            DataContainer.downloadModsTemp, DataContainer.installedGithubModInformationToCsvForUpdate, fileName);
                     }
                 }
 
                 OrganizeDownloadFileStructure(DataContainer.downloadModsTemp, Settings.Instance.BeatSaberExeFolderPath);
+
+                WriteCsv(DataContainer.githubModCsvPath, DataContainer.installedGithubModInformationToCsvForUpdate);
             }
         }
 
@@ -239,7 +235,7 @@ namespace GithubModUpdateCheckerConsole
             {
                 // すべてダウンロードしたいのでnew Version("0.0.0")を渡す
                 // ダウンロードされるのは最新のもの
-                await githubManager.DownloadGithubModAsync(a.GithubUrl, new Version("0.0.0"), DataContainer.downloadModsTemp);
+                await githubManager.DownloadGithubModAsync(a.GithubUrl, new Version("0.0.0"), DataContainer.downloadModsTemp, null, null);
             }
 
             OrganizeDownloadFileStructure(DataContainer.downloadModsTemp, DataContainer.downloadModsTemp);
