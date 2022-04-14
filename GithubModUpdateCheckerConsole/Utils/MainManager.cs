@@ -38,7 +38,7 @@ namespace GithubModUpdateCheckerConsole
             // Console.WriteLine("Start GetAllModAssistantMods");
             DataContainer.modAssistantAllMods = await modAssistantManager.GetAllModAssistantMods();
 
-            DataContainer.nowLocalFilesInfoDictionary = GetLocalModFilesInfo(DataContainer.nowPluginsPath);
+            DataContainer.nowLocalFilesInfoDictionary = GetLocalModFilesInfo(DataContainer.nowPluginsPath, null);
 
             foreach (KeyValuePair<string, Version> fileAndVersion in DataContainer.nowLocalFilesInfoDictionary)
             {
@@ -90,25 +90,27 @@ namespace GithubModUpdateCheckerConsole
             foreach (var githubModInformation in githubModInformationList)
             {
                 DataContainer.updateGithubModInformationCsv.Add(githubModInformation);
-                Tuple<bool, string> originalBoolAndUrl = new Tuple<bool, string>(githubModInformation.OriginalMod, githubModInformation.GithubUrl);
-                DataContainer.nowLocalGithubModAndOriginalBoolAndUrl.Add(githubModInformation.GithubMod, originalBoolAndUrl);
+                Tuple<Version ,bool, string> versionAndOriginalBoolAndUrl = new Tuple<Version,bool, string>(
+                    new Version(githubModInformation.GithubVersion) ,githubModInformation.OriginalMod, githubModInformation.GithubUrl
+                    );
+                DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl.Add(githubModInformation.GithubMod, versionAndOriginalBoolAndUrl);
             }
             foreach (var mAModInformation in mAModInformationList)
             {
                 DataContainer.installedMAMod.Add(mAModInformation.ModAssistantMod);
             }
 
-            DataContainer.nowLocalFilesInfoDictionary = GetLocalModFilesInfo(DataContainer.nowPluginsPath);
+            DataContainer.nowLocalFilesInfoDictionary = GetLocalModFilesInfo(DataContainer.nowPluginsPath, DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl);
 
             Console.WriteLine("前回実行時との差分を取得");
 
             // ローカルの差分を反映
             ManageLocalPluginsDiff(githubManager);
 
-            // MAの更新を反映,ローカル増加分でMAにあるModの処理
+            // ローカル増加分でMAにあるModの処理、MAの更新を反映
             foreach (var item in DataContainer.modAssistantAllMods)
             {
-                if (!DataContainer.nowLocalGithubModAndOriginalBoolAndUrl.ContainsKey(item.name) && DataContainer.nowLocalFilesInfoDictionary.ContainsKey(item.name))
+                if (!DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl.ContainsKey(item.name) && DataContainer.nowLocalFilesInfoDictionary.ContainsKey(item.name))
                 {
                     KeyValuePair<string, Version> fileAndVersion = new KeyValuePair<string, Version>(item.name, DataContainer.nowLocalFilesInfoDictionary[item.name]);
 
@@ -120,23 +122,24 @@ namespace GithubModUpdateCheckerConsole
                     {
                         githubManager.InputGithubModInformation(fileAndVersion);
                         GithubModInformationCsv newGithubModNotManageInMA = DataContainer.updateGithubModInformationCsv[DataContainer.updateGithubModInformationCsv.Count - 1];
-                        Tuple<bool, string> tempGithubModInformation = new Tuple<bool, string>(newGithubModNotManageInMA.OriginalMod, newGithubModNotManageInMA.GithubUrl);
-                        DataContainer.nowLocalGithubModAndOriginalBoolAndUrl[newGithubModNotManageInMA.GithubMod] = tempGithubModInformation;
+                        Tuple<Version, bool, string> tempGithubModInformation = new Tuple<Version, bool, string>(
+                            new Version(newGithubModNotManageInMA.GithubVersion),newGithubModNotManageInMA.OriginalMod, newGithubModNotManageInMA.GithubUrl);
+                        DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl[newGithubModNotManageInMA.GithubMod] = tempGithubModInformation;
                     }
                 }
                 DetectAddedMAModForUpdate(item);
             }
 
-            foreach (var fileNameAndOriginalBoolAndUrl in DataContainer.nowLocalGithubModAndOriginalBoolAndUrl)
+            foreach (var fileNameAndVersioinAndOriginalBoolAndUrl in DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl)
             {
-                string pluginPath = Path.Combine(DataContainer.nowPluginsPath, fileNameAndOriginalBoolAndUrl.Key);
+                string pluginPath = Path.Combine(DataContainer.nowPluginsPath, fileNameAndVersioinAndOriginalBoolAndUrl.Key);
 
-                var latestVersion = githubManager.GetGithubModLatestVersion(fileNameAndOriginalBoolAndUrl.Value.Item2).Result;
+                var latestVersion = githubManager.GetGithubModLatestVersion(fileNameAndVersioinAndOriginalBoolAndUrl.Value.Item3).Result;
 
-                if (latestVersion > DataContainer.nowLocalFilesInfoDictionary[fileNameAndOriginalBoolAndUrl.Key])
+                if (latestVersion > DataContainer.nowLocalFilesInfoDictionary[fileNameAndVersioinAndOriginalBoolAndUrl.Key])
                 {
-                    await githubManager.DownloadGithubModAsync(DataContainer.nowLocalGithubModAndOriginalBoolAndUrl[fileNameAndOriginalBoolAndUrl.Key].Item2,
-                        DataContainer.nowLocalFilesInfoDictionary[fileNameAndOriginalBoolAndUrl.Key], DataContainer.downloadModsTemp);
+                    await githubManager.DownloadGithubModAsync(DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl[fileNameAndVersioinAndOriginalBoolAndUrl.Key].Item3,
+                        DataContainer.nowLocalFilesInfoDictionary[fileNameAndVersioinAndOriginalBoolAndUrl.Key], DataContainer.downloadModsTemp);
                 }
             }
 
@@ -183,26 +186,30 @@ namespace GithubModUpdateCheckerConsole
                 foreach (var githubModInformation in githubModInformationList)
                 {
                     DataContainer.updateGithubModInformationCsv.Add(githubModInformation);
-                    Tuple<bool, string> originalBoolAndUrl = new Tuple<bool, string>(githubModInformation.OriginalMod, githubModInformation.GithubUrl);
-                    DataContainer.nowLocalGithubModAndOriginalBoolAndUrl.Add(githubModInformation.GithubMod, originalBoolAndUrl);
+                    Tuple<Version, bool, string> versionAndOriginalBoolAndUrl = new Tuple<Version, bool, string>(
+                        new Version(githubModInformation.GithubVersion), githubModInformation.OriginalMod, githubModInformation.GithubUrl
+                    );
+                    // nowではなくoldが正確
+                    DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl.Add(githubModInformation.GithubMod, versionAndOriginalBoolAndUrl);
                 }
 
-                DataContainer.nowLocalFilesInfoDictionary = GetLocalModFilesInfo(DataContainer.nowPluginsPath);
-                DataContainer.oldLocalFilesInfoDictionary = GetLocalModFilesInfo(oldPluginsPath);
+                
+                DataContainer.nowLocalFilesInfoDictionary = GetLocalModFilesInfo(DataContainer.nowPluginsPath,null);
+                DataContainer.oldLocalFilesInfoDictionary = GetLocalModFilesInfo(oldPluginsPath, DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl);
 
-                foreach (var fileNameAndOriginalBoolAndUrl in DataContainer.nowLocalGithubModAndOriginalBoolAndUrl)
+                foreach (var fileNameAndVersionAndOriginalBoolAndUrl in DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl)
                 {
-                    string fileName = fileNameAndOriginalBoolAndUrl.Key;
+                    string fileName = fileNameAndVersionAndOriginalBoolAndUrl.Key;
 
                     if (!DataContainer.nowLocalFilesInfoDictionary.ContainsKey(fileName) && DataContainer.oldLocalFilesInfoDictionary.ContainsKey(fileName))
                     {
-                        await githubManager.DownloadGithubModAsync(DataContainer.nowLocalGithubModAndOriginalBoolAndUrl[fileNameAndOriginalBoolAndUrl.Key].Item2,
-                            DataContainer.oldLocalFilesInfoDictionary[fileNameAndOriginalBoolAndUrl.Key], DataContainer.downloadModsTemp);
+                        await githubManager.DownloadGithubModAsync(DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl[fileNameAndVersionAndOriginalBoolAndUrl.Key].Item3,
+                            DataContainer.oldLocalFilesInfoDictionary[fileNameAndVersionAndOriginalBoolAndUrl.Key], DataContainer.downloadModsTemp);
                     }
                     if (DataContainer.nowLocalFilesInfoDictionary.ContainsKey(fileName) && DataContainer.oldLocalFilesInfoDictionary.ContainsKey(fileName))
                     {
-                        await githubManager.DownloadGithubModAsync(DataContainer.nowLocalGithubModAndOriginalBoolAndUrl[fileNameAndOriginalBoolAndUrl.Key].Item2,
-                            DataContainer.nowLocalFilesInfoDictionary[fileNameAndOriginalBoolAndUrl.Key], DataContainer.downloadModsTemp);
+                        await githubManager.DownloadGithubModAsync(DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl[fileNameAndVersionAndOriginalBoolAndUrl.Key].Item3,
+                            DataContainer.nowLocalFilesInfoDictionary[fileNameAndVersionAndOriginalBoolAndUrl.Key], DataContainer.downloadModsTemp);
                     }
                 }
 

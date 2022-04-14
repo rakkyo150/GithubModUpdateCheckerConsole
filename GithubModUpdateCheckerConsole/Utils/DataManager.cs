@@ -18,7 +18,7 @@ namespace GithubModUpdateCheckerConsole.Utils
         /// </summary>
         /// <param name="pluginsFolderPath"></param>
         /// <returns></returns>
-        public Dictionary<string, Version> GetLocalModFilesInfo(string pluginsFolderPath)
+        public Dictionary<string, Version> GetLocalModFilesInfo(string pluginsFolderPath, Dictionary<string, Tuple<Version, bool, string>> localGithubModAndVersionAndOriginalBoolAndUrl)
         {
             // Console.WriteLine("Start Getting FileInfo");
 
@@ -31,6 +31,10 @@ namespace GithubModUpdateCheckerConsole.Utils
                 string pluginPath = Path.Combine(pluginsFolderPath, f.Name);
                 System.Diagnostics.FileVersionInfo vi = System.Diagnostics.FileVersionInfo.GetVersionInfo(pluginPath);
                 Version installedModVersion = new Version(vi.FileVersion);
+                if (localGithubModAndVersionAndOriginalBoolAndUrl!=null&&localGithubModAndVersionAndOriginalBoolAndUrl.ContainsKey(f.Name))
+                {
+                    installedModVersion = DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl[f.Name].Item1;
+                }
 
                 filesInfo.Add(f.Name.Replace(".dll", ""), installedModVersion);
             }
@@ -94,14 +98,14 @@ namespace GithubModUpdateCheckerConsole.Utils
         /// <param name="item"></param>
         public void DetectAddedMAModForUpdate(ModAssistantModInformation item)
         {
-            if (DataContainer.nowLocalGithubModAndOriginalBoolAndUrl.ContainsKey(item.name))
+            if (DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl.ContainsKey(item.name))
             {
-                if (DataContainer.nowLocalGithubModAndOriginalBoolAndUrl[item.name].Item1)
+                if (DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl[item.name].Item2)
                 {
                     Console.WriteLine(item.name + "はオリジナルModとして登録されており、かつModAssistantにあります");
                     Console.WriteLine($"よって、{ item.name} を管理から外します");
 
-                    DataContainer.nowLocalGithubModAndOriginalBoolAndUrl.Remove(item.name);
+                    DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl.Remove(item.name);
                     DataContainer.updateGithubModInformationCsv.Remove(DataContainer.updateGithubModInformationCsv.Find(n => n.GithubMod == item.name));
                 }
             }
@@ -154,22 +158,26 @@ namespace GithubModUpdateCheckerConsole.Utils
         public void ManageLocalPluginsDiff(IGithubManager githubManager)
         {
             // ローカルファイル減少分
-            foreach (var a in DataContainer.nowLocalGithubModAndOriginalBoolAndUrl)
+            foreach (var a in DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl)
             {
                 if (!DataContainer.nowLocalFilesInfoDictionary.ContainsKey(a.Key))
                 {
-                    DataContainer.nowLocalGithubModAndOriginalBoolAndUrl.Remove(a.Key);
+                    DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl.Remove(a.Key);
                     DataContainer.updateGithubModInformationCsv.Remove(DataContainer.updateGithubModInformationCsv.Find(n => n.GithubMod == a.Key));
                 }
             }
             // ローカルファイル増加分
             foreach (var a in DataContainer.nowLocalFilesInfoDictionary)
             {
-                if (!DataContainer.nowLocalGithubModAndOriginalBoolAndUrl.ContainsKey(a.Key) && !Array.Exists(DataContainer.modAssistantAllMods, element => element.name == a.Key))
+                if (!DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl.ContainsKey(a.Key) && !Array.Exists(DataContainer.modAssistantAllMods, element => element.name == a.Key))
                 {
                     githubManager.InputGithubModInformation(new KeyValuePair<string, Version>(a.Key, a.Value));
-                    Tuple<bool, string> tempGithubModInformation = new Tuple<bool, string>(DataContainer.updateGithubModInformationCsv.Find(n => n.GithubMod == a.Key).OriginalMod, DataContainer.updateGithubModInformationCsv.Find(n => n.GithubMod == a.Key).GithubUrl);
-                    DataContainer.nowLocalGithubModAndOriginalBoolAndUrl[a.Key] = tempGithubModInformation;
+                    Tuple<Version,bool, string> tempGithubModInformation = new Tuple<Version, bool, string>(
+                        new Version(DataContainer.updateGithubModInformationCsv.Find(n => n.GithubMod == a.Key).GithubVersion),
+                        DataContainer.updateGithubModInformationCsv.Find(n => n.GithubMod == a.Key).OriginalMod, 
+                        DataContainer.updateGithubModInformationCsv.Find(n => n.GithubMod == a.Key).GithubUrl
+                    );
+                    DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl[a.Key] = tempGithubModInformation;
                 }
             }
         }
@@ -239,7 +247,7 @@ namespace GithubModUpdateCheckerConsole.Utils
             {
                 foreach (var a in DataContainer.modAssistantAllMods)
                 {
-                    if (!DataContainer.nowLocalGithubModAndOriginalBoolAndUrl.ContainsKey(a.name) && DataContainer.nowLocalFilesInfoDictionary.ContainsKey(a.name))
+                    if (!DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl.ContainsKey(a.name) && DataContainer.nowLocalFilesInfoDictionary.ContainsKey(a.name))
                     {
                         MAModInformationCsv modAssistantCsvInstance = new MAModInformationCsv()
                         {

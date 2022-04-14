@@ -22,7 +22,7 @@ namespace GithubModUpdateCheckerConsole
         public static Dictionary<string, Version> nowLocalFilesInfoDictionary { get; set; }
         public static Dictionary<string, Version> oldLocalFilesInfoDictionary { get; set; }
 
-        public static Dictionary<string, Tuple<bool, string>> nowLocalGithubModAndOriginalBoolAndUrl { get; set; } = new Dictionary<string, Tuple<bool, string>>();
+        public static Dictionary<string, Tuple<Version,bool, string>> nowLocalGithubModAndVersionAndOriginalBoolAndUrl { get; set; } = new Dictionary<string, Tuple<Version,bool, string>>();
         public static List<string> installedMAMod { get; set; } = new List<string>();
 
         public static ModAssistantModInformation[] modAssistantAllMods { get; set; }
