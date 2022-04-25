@@ -5,7 +5,7 @@ namespace GithubModUpdateCheckerConsole.Interfaces
 {
     public interface IModAssistantManager
     {
-        Task<ModAssistantModInformation[]> GetAllModAssistantMods();
+        Task<ModAssistantModInformation[]> GetAllModAssistantModsAsync();
         string GetGameVersion();
     }
 }

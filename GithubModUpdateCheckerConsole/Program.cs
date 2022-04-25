@@ -7,10 +7,10 @@ using System.IO;
 
 string downloadModsTemp = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ModsTemp");
 string configFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
-bool initialize = false;
 
 IMainManager mainManager = new MainManager();
 DataManager dataManager = new DataManager();
+GithubManager githubManager = new GithubManager();
 
 ConfigManager configManager = new ConfigManager();
 
@@ -18,14 +18,17 @@ if (!File.Exists(configFile))
 {
     Console.WriteLine("There is not config.json");
     Console.WriteLine("Start Initialize");
-    await mainManager.Initialize();
-    initialize = true;
+    await mainManager.InitializeAsync();
 }
 
 configManager.LoadConfigFile(configFile);
 
+Console.WriteLine("Tokenの確認をします");
+await githubManager.CheckCredential();
+
 Console.WriteLine("バックアップを作成します");
 dataManager.Backup();
+
 
 dataManager.CleanModsTemp(downloadModsTemp);
 Console.WriteLine("モードを選んでください");
@@ -47,7 +50,7 @@ else if (mode == "2")
 else
 {
     Console.WriteLine("csvからダウンロードをスタート");
-    await mainManager.ImportCsv();
+    await mainManager.ImportCsvAsync();
 }
 
 Console.WriteLine("returnで終了します");

@@ -44,6 +44,11 @@ namespace GithubModUpdateCheckerConsole.Utils
             string? oAuthToken = Console.ReadLine();
             Settings.Instance.OAuthToken = oAuthToken;
 
+            MakeConfigFileLight(path);
+        }
+
+        public void MakeConfigFileLight(string path)
+        {
             string _jsonFinish = JsonConvert.SerializeObject(Settings.Instance, Formatting.Indented);
 
             StreamWriter wr = new StreamWriter(new FileStream(path, FileMode.Create));

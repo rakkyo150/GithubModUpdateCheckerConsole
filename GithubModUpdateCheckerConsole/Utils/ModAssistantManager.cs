@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 namespace GithubModUpdateCheckerConsole.Utils
 {
     internal class ModAssistantManager : DataManager, IModAssistantManager
-    {
-        public async Task<ModAssistantModInformation[]> GetAllModAssistantMods()
+    {   
+        public async Task<ModAssistantModInformation[]> GetAllModAssistantModsAsync()
         {
             ModAssistantModInformation[] modAssistantMod = null;
 

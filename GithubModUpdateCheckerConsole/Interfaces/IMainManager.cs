@@ -8,7 +8,7 @@ namespace GithubModUpdateCheckerConsole.Interfaces
         /// config.jsonの作成、ModAssistantとGithubのModの振り分け、GithubのModの情報を入力、csvの作成
         /// </summary>
         /// <returns></returns>
-        Task Initialize();
+        Task InitializeAsync();
 
         /// <summary>
         /// 前回実行時のデータがなければイニシャライズ、前回実行時との差分を取得、ModAssistantとGithubのModを振り分け、GithubのModの情報を入力、最新バージョンのModをインストール
@@ -28,6 +28,6 @@ namespace GithubModUpdateCheckerConsole.Interfaces
         /// csvに書かれているModをModsTempにダウンロード
         /// </summary>
         /// <returns></returns>
-        Task ImportCsv();
+        Task ImportCsvAsync();
     }
 }

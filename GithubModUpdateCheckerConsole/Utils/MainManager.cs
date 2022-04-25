@@ -24,7 +24,7 @@ namespace GithubModUpdateCheckerConsole
         }
 
         // Based on https://dobon.net/vb/dotnet/file/getfiles.html and https://dobon.net/vb/dotnet/file/fileversion.html
-        public async Task Initialize()
+        public async Task InitializeAsync()
         {
             // config.jsonの作成
             if (!File.Exists(DataContainer.configFile))
@@ -34,7 +34,7 @@ namespace GithubModUpdateCheckerConsole
             }
 
             // Console.WriteLine("Start GetAllModAssistantMods");
-            DataContainer.modAssistantAllMods = await modAssistantManager.GetAllModAssistantMods();
+            DataContainer.modAssistantAllMods = await modAssistantManager.GetAllModAssistantModsAsync();
 
             DataContainer.nowLocalFilesInfoDictionary = GetLocalModFilesInfo(DataContainer.nowPluginsPath, null);
 
@@ -53,7 +53,7 @@ namespace GithubModUpdateCheckerConsole
 
                 if (!passInputGithubModInformation)
                 {
-                    githubManager.InputGithubModInformation(fileAndVersion, DataContainer.installedGithubModInformationToCsvForInitialize);
+                    await githubManager.InputGithubModInformationAsync(fileAndVersion, DataContainer.installedGithubModInformationToCsvForInitialize);
                 }
             }
 
@@ -76,10 +76,10 @@ namespace GithubModUpdateCheckerConsole
             {
                 Console.WriteLine($"{DataContainer.githubModCsvPath}がありません");
                 Console.WriteLine("イニシャライズします");
-                await Initialize();
+                await InitializeAsync();
             }
 
-            DataContainer.modAssistantAllMods = await modAssistantManager.GetAllModAssistantMods();
+            DataContainer.modAssistantAllMods = await modAssistantManager.GetAllModAssistantModsAsync();
 
             ReadCsv(DataContainer.githubModCsvPath, out List<GithubModInformationCsv> previousGithubModInformationList);
 
@@ -103,7 +103,7 @@ namespace GithubModUpdateCheckerConsole
             Console.WriteLine("前回実行時との差分を取得");
 
             // ローカルの差分を反映
-            ManageLocalPluginsDiff(githubManager);
+            await ManageLocalPluginsDiffAsync(githubManager);
 
             // ローカル増加分でMAにあるModの処理、MAの更新を反映
             foreach (var item in DataContainer.modAssistantAllMods)
@@ -118,7 +118,7 @@ namespace GithubModUpdateCheckerConsole
 
                     if (!passInputGithubModInformation)
                     {
-                        githubManager.InputGithubModInformation(fileAndVersion, DataContainer.installedGithubModInformationToCsvForUpdate);
+                        await githubManager.InputGithubModInformationAsync(fileAndVersion, DataContainer.installedGithubModInformationToCsvForUpdate);
                         GithubModInformationCsv newGithubModNotManageInMA = DataContainer.installedGithubModInformationToCsvForUpdate[DataContainer.installedGithubModInformationToCsvForUpdate.Count - 1];
                         Tuple<Version, bool, string> tempGithubModInformation = new Tuple<Version, bool, string>(
                             new Version(newGithubModNotManageInMA.LocalVersion), newGithubModNotManageInMA.OriginalMod, newGithubModNotManageInMA.GithubUrl);
@@ -132,7 +132,7 @@ namespace GithubModUpdateCheckerConsole
             {
                 string pluginPath = Path.Combine(DataContainer.nowPluginsPath, fileNameAndVersioinAndOriginalBoolAndUrl.Key);
 
-                var latestVersion = githubManager.GetGithubModLatestVersion(fileNameAndVersioinAndOriginalBoolAndUrl.Value.Item3).Result;
+                var latestVersion = await githubManager.GetGithubModLatestVersionAsync(fileNameAndVersioinAndOriginalBoolAndUrl.Value.Item3);
 
                 if (latestVersion > fileNameAndVersioinAndOriginalBoolAndUrl.Value.Item1)
                 {
@@ -158,7 +158,7 @@ namespace GithubModUpdateCheckerConsole
             {
                 Console.WriteLine($"{DataContainer.githubModCsvPath}がありません");
                 Console.WriteLine("イニシャライズします");
-                await Initialize();
+                await InitializeAsync();
             }
             else
             {
@@ -214,7 +214,7 @@ namespace GithubModUpdateCheckerConsole
         }
 
 
-        public async Task ImportCsv()
+        public async Task ImportCsvAsync()
         {
             if (!Directory.Exists(DataContainer.importCsv))
             {

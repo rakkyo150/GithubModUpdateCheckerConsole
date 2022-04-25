@@ -7,7 +7,9 @@ namespace GithubModUpdateCheckerConsole.Interfaces
 {
     public interface IGithubManager
     {
-        void InputGithubModInformation(KeyValuePair<string, Version> fileAndVersion, List<GithubModInformationCsv> githubModInformationToCsv);
+        Task CheckCredential();
+
+        Task InputGithubModInformationAsync(KeyValuePair<string, Version> fileAndVersion, List<GithubModInformationCsv> githubModInformationToCsv);
 
         /// <summary>
         /// <para>リリースの情報を取得、リリースのバージョンが現在のバージョンよりも高い場合はダウンロード</para>
@@ -19,8 +21,9 @@ namespace GithubModUpdateCheckerConsole.Interfaces
         /// <param name="githubModInformationToCsv"></param>
         /// <param name="fileName"></param>
         /// <returns></returns>
+
         Task DownloadGithubModAsync(string url, Version currentVersion, string destDirName, List<GithubModInformationCsv> githubModInformationToCsv, string fileName);
 
-        Task<Version> GetGithubModLatestVersion(string url);
+        Task<Version> GetGithubModLatestVersionAsync(string url);
     }
 }

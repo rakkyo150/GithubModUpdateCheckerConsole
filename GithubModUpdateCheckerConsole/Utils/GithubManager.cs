@@ -12,10 +12,42 @@ using FileMode = System.IO.FileMode;
 
 namespace GithubModUpdateCheckerConsole
 {
-    internal class GithubManager : IGithubManager
+    internal class GithubManager : ConfigManager,IGithubManager
     {
+        public async Task CheckCredential()
+        {
+            bool checkCredential = false;
+
+            while (!checkCredential)
+            {
+                var credential = new Credentials(Settings.Instance.OAuthToken);
+                GitHubClient github = new GitHubClient(new ProductHeaderValue("GithubModUpdateChecker"));
+                github.Credentials = credential;
+
+                string owner = "rakkyo150";
+                string name = "GithubModUpdateCheckerConsole";
+
+                try
+                {
+                    var response = await github.Repository.Release.GetLatest(owner, name);
+                    checkCredential = true;
+                    Console.WriteLine("Tokenは有効です");
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Tokenは無効です");
+                    Console.WriteLine("新たなTokenを入力してください");
+                    string token = Console.ReadLine();
+                    Settings.Instance.OAuthToken = token;
+                }
+            }
+
+            MakeConfigFileLight(DataContainer.configFile);
+        }
+        
         // Initializeでも使うので第二引数が必要
-        public void InputGithubModInformation(KeyValuePair<string, Version> fileAndVersion, List<GithubModInformationCsv> githubModInformationToCsv)
+        public async Task InputGithubModInformationAsync(KeyValuePair<string, Version> fileAndVersion, List<GithubModInformationCsv> githubModInformationToCsv)
         {
             Console.WriteLine($"{fileAndVersion.Key} : {fileAndVersion.Value}");
 
@@ -31,7 +63,7 @@ namespace GithubModUpdateCheckerConsole
                 originalMod = false;
             }
 
-            string githubUrl = "p";
+            string? githubUrl = "p";
             string githubModVersion = "0.0.0";
             bool inputUrlFinish = false;
             while (!inputUrlFinish)
@@ -66,7 +98,8 @@ namespace GithubModUpdateCheckerConsole
                 {
                     Console.WriteLine("Githubの最新のリリースのタグ情報を取得します");
 
-                    githubModVersion = GetGithubModLatestVersion(githubUrl).Result.ToString();
+                    Version tempGithubModVersion = await GetGithubModLatestVersionAsync(githubUrl);
+                    githubModVersion = tempGithubModVersion.ToString();
                     if (githubModVersion == new Version("0.0.0").ToString())
                     {
                         Console.WriteLine("リリース情報が取得できませんでした");
@@ -216,7 +249,7 @@ namespace GithubModUpdateCheckerConsole
             }
         }
 
-        public async Task<Version> GetGithubModLatestVersion(string url)
+        public async Task<Version> GetGithubModLatestVersionAsync(string url)
         {
             if (url == "p") return new Version("0.0.0");
 
@@ -242,8 +275,8 @@ namespace GithubModUpdateCheckerConsole
             try
             {
                 // プレリリースを取得する場合はGetAllしかないが、効率が悪いのでプレリリースには対応しません
-                var response = github.Repository.Release.GetLatest(owner, name);
-                latestVersion = DetectVersion(response.Result.TagName);
+                var response = await github.Repository.Release.GetLatest(owner, name);
+                latestVersion = DetectVersion(response.TagName);
 
                 if (latestVersion == null)
                 {

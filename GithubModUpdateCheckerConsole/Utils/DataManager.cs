@@ -8,6 +8,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace GithubModUpdateCheckerConsole.Utils
 {
@@ -156,7 +157,7 @@ namespace GithubModUpdateCheckerConsole.Utils
         /// ローカルファイルの差分を取得
         /// </summary>
         /// <param name="githubManager"></param>
-        public void ManageLocalPluginsDiff(IGithubManager githubManager)
+        public async Task ManageLocalPluginsDiffAsync(IGithubManager githubManager)
         {
             // ローカルファイル減少分
             foreach (var a in DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl)
@@ -172,7 +173,7 @@ namespace GithubModUpdateCheckerConsole.Utils
             {
                 if (!DataContainer.nowLocalGithubModAndVersionAndOriginalBoolAndUrl.ContainsKey(a.Key) && !Array.Exists(DataContainer.modAssistantAllMods, element => element.name == a.Key))
                 {
-                    githubManager.InputGithubModInformation(new KeyValuePair<string, Version>(a.Key, a.Value), DataContainer.installedGithubModInformationToCsvForUpdate);
+                    await githubManager.InputGithubModInformationAsync(new KeyValuePair<string, Version>(a.Key, a.Value), DataContainer.installedGithubModInformationToCsvForUpdate);
                     Tuple<Version, bool, string> tempGithubModInformation = new Tuple<Version, bool, string>(
                         new Version(DataContainer.installedGithubModInformationToCsvForUpdate.Find(n => n.GithubMod == a.Key).LocalVersion),
                         DataContainer.installedGithubModInformationToCsvForUpdate.Find(n => n.GithubMod == a.Key).OriginalMod,
