@@ -431,25 +431,38 @@ namespace GithubModUpdateCheckerConsole.Utils
         public void UpdateUpdater()
         {
             string downloadPath = Path.Combine(Environment.CurrentDirectory, DataContainer.latestCheckerVersion.ToString());
-            if (Directory.Exists(downloadPath))
+            try
             {
-                DirectoryInfo dir = new DirectoryInfo(downloadPath);
-
-                FileInfo[] files = dir.GetFiles();
-                foreach (FileInfo file in files)
+                if (Directory.Exists(downloadPath))
                 {
-                    if (file.Name.Contains("Updater") && !file.Name.Contains("GithubModUpdateCheckerConsole"))
+                    DirectoryInfo dir = new DirectoryInfo(downloadPath);
+
+                    FileInfo[] files = dir.GetFiles();
+                    foreach (FileInfo file in files)
                     {
-                        string tempPath = Path.Combine(Environment.CurrentDirectory, file.Name);
-                        file.CopyTo(tempPath, true);
+                        if (file.Name.Contains("Updater") && !file.Name.Contains("GithubModUpdateCheckerConsole"))
+                        {
+                            string tempPath = Path.Combine(Environment.CurrentDirectory, file.Name);
+                            file.CopyTo(tempPath, true);
+                        }
                     }
+                    Console.WriteLine("Updaterのアップデート完了");
                 }
-                Console.WriteLine("Updaterのアップデート完了");
+                else
+                {
+                    Console.WriteLine("Updaterのアップデートができませんでした");
+                    Console.WriteLine("最新バージョンのフォルダが生成されているはずなので、手動で中身を上書きコピペしてください");
+                    Console.ReadLine();
+                    Environment.Exit(0);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                Console.WriteLine("Updaterのアップデートができませんでした");
-                Console.WriteLine("Updaterは手動で更新をお願いします");
+                Console.WriteLine(ex);
+                Console.WriteLine("正常にアップデートができませんでした");
+                Console.WriteLine("最新バージョンのフォルダが生成されているはずなので、手動で中身を上書きコピペしてください");
+                Console.ReadLine();
+                Environment.Exit(0);
             }
         }
     }
