@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -12,11 +13,75 @@ using FileMode = System.IO.FileMode;
 
 namespace GithubModUpdateCheckerConsole
 {
-    internal class GithubManager : ConfigManager,IGithubManager
+    internal class GithubManager : DataManager,IGithubManager
     {
+        
+        public async Task<bool> CheckNewVersionAndDowonload()
+        {
+            GitHubClient github = new GitHubClient(new ProductHeaderValue("GithubModUpdateChecker"));
+            bool update = false;
+            string url = "https://github.com/rakkyo150/GithubModUpdateCheckerConsole";
+            string? destDirFullPath;
+
+            System.Reflection.Assembly asm = System.Reflection.Assembly.GetExecutingAssembly();
+            System.Version currentVersion = asm.GetName().Version;
+
+            DataContainer.latestCheckerVersion = await GetGithubModLatestVersionAsync(url);
+            if(DataContainer.latestCheckerVersion > currentVersion)
+            {
+                destDirFullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, DataContainer.latestCheckerVersion.ToString());
+                if (!Directory.Exists(destDirFullPath))
+                {
+                    Directory.CreateDirectory(destDirFullPath);
+                }
+               
+                await DownloadGithubModAsync(url, currentVersion, destDirFullPath, null, null);
+
+                string zipFileName = Path.Combine(destDirFullPath, "GithubModUpdateCheckerConsole.zip");
+                try
+                {
+                    using (var fs = File.Open(zipFileName, FileMode.Open))
+                    using (var zip = new ZipArchive(fs))
+                    {
+                        foreach (var file in zip.Entries)
+                        {
+                            var installPath = Path.Combine(destDirFullPath, file.FullName);
+                            if (File.Exists(installPath))
+                            {
+                                File.Delete(installPath);
+                            }
+                        }
+                        zip.ExtractToDirectory(destDirFullPath);
+                    }
+                    File.Delete(zipFileName);
+
+                    string unzipPath = Path.Combine(destDirFullPath, "GithubModUpdateCheckerConsole");
+                    if (Directory.Exists(unzipPath))
+                    {
+                        DirectoryCopy(unzipPath, destDirFullPath, true);
+                        Directory.Delete(unzipPath, true);
+                    }
+
+                    update=true;
+                    return update;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"{e}");
+                    return update;
+                }
+            }
+            else
+            {
+                Console.WriteLine("更新版はみつかりませんでした");
+                return update;
+            }
+        }
+        
         public async Task CheckCredential()
         {
             bool checkCredential = false;
+            ConfigManager configManager= new ConfigManager();
 
             while (!checkCredential)
             {
@@ -32,7 +97,6 @@ namespace GithubModUpdateCheckerConsole
                     var response = await github.Repository.Release.GetLatest(owner, name);
                     checkCredential = true;
                     Console.WriteLine("Tokenは有効です");
-                    break;
                 }
                 catch (Exception ex)
                 {
@@ -43,7 +107,7 @@ namespace GithubModUpdateCheckerConsole
                 }
             }
 
-            MakeConfigFileLight(DataContainer.configFile);
+            configManager.MakeConfigFileLight(DataContainer.configFile);
         }
         
         // Initializeでも使うので第二引数が必要
@@ -152,15 +216,15 @@ namespace GithubModUpdateCheckerConsole
             string owner = temp.Substring(0, nextSlashPosition);
             string name = temp.Substring(nextSlashPosition + 1);
 
-            var response = github.Repository.Release.GetLatest(owner, name);
+            var response = await github.Repository.Release.GetLatest(owner, name);
 
             try
             {
-                string releaseBody = response.Result.Body;
-                var releaseCreatedAt = response.Result.CreatedAt;
+                string releaseBody = response.Body;
+                var releaseCreatedAt = response.CreatedAt;
                 DateTimeOffset now = DateTimeOffset.UtcNow;
 
-                Version latestVersion = DetectVersion(response.Result.TagName);
+                Version latestVersion = DetectVersion(response.TagName);
 
                 if (latestVersion == null)
                 {
@@ -213,7 +277,7 @@ namespace GithubModUpdateCheckerConsole
                         }
                         else if (download == "y")
                         {
-                            foreach (var item in response.Result.Assets)
+                            foreach (var item in response.Assets)
                             {
                                 Console.WriteLine("ダウンロード中");
                                 await DownloadModHelperAsync(item.BrowserDownloadUrl, item.Name, destDirFullPath);

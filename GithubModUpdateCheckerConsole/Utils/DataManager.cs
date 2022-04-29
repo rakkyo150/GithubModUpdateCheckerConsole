@@ -427,5 +427,30 @@ namespace GithubModUpdateCheckerConsole.Utils
                 Directory.Delete(path, false);
             }
         }
+
+        public void UpdateUpdater()
+        {
+            string downloadPath = Path.Combine(Environment.CurrentDirectory, DataContainer.latestCheckerVersion.ToString());
+            if (Directory.Exists(downloadPath))
+            {
+                DirectoryInfo dir = new DirectoryInfo(downloadPath);
+
+                FileInfo[] files = dir.GetFiles();
+                foreach (FileInfo file in files)
+                {
+                    if (file.Name.Contains("Updater") && !file.Name.Contains("GithubModUpdateCheckerConsole"))
+                    {
+                        string tempPath = Path.Combine(Environment.CurrentDirectory, file.Name);
+                        file.CopyTo(tempPath, true);
+                    }
+                }
+                Console.WriteLine("Updaterのアップデート完了");
+            }
+            else
+            {
+                Console.WriteLine("Updaterのアップデートができませんでした");
+                Console.WriteLine("Updaterは手動で更新をお願いします");
+            }
+        }
     }
 }

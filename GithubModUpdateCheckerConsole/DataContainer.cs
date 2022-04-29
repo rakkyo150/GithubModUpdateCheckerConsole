@@ -16,6 +16,8 @@ namespace GithubModUpdateCheckerConsole
         public readonly static string mAModCsvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "ModAssistantModData.csv");
         public readonly static string backupFodlerPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Backup");
 
+        public static Version latestCheckerVersion { get; set; } = new Version("0.0.0");
+        
         public static string nowGameVersion { get; set; } = "1.10.0";
         public static string oldGameVersion { get; set; }
 
