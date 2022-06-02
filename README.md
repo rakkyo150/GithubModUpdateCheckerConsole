@@ -1,4 +1,6 @@
 ﻿# GithubModUpdateCheckerConsole
+ 
+## 今後は[BSModManager](https://github.com/rakkyo150/BSModManager)をお使いください
 
 ## これはなに？
 GithubでリリースされているBeat SaberのModの最新版を自動取得してダウンロードしてくれるツール。<br>
